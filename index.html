@@ -2,47 +2,45 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JSON Editor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
 <style>
-:root{--bg:#f5f7fa;--card-bg:#fff;--primary:#0066ff;--primary-hover:#004cc7;--danger:#ff3b30;--border:#e0e6ef;--radius:12px;--shadow:0 4px 12px rgba(0,0,0,.08);--font:"Segoe UI","SF Pro",Roboto,Helvetica,Arial,sans-serif}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);font-family:var(--font);color:#1f2937;line-height:1.4;padding:24px}
-button,input,select,textarea{font-family:inherit;font-size:14px}
-button{background:var(--primary);color:#fff;border:none;padding:6px 16px;border-radius:var(--radius);cursor:pointer;transition:background .2s}
-button[disabled]{opacity:.4;cursor:not-allowed}
-button:not([disabled]):hover{background:var(--primary-hover)}
-.btn-danger{background:var(--danger)}
-.btn-danger:hover{background:#c5271f}
-#controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
-h1{font-size:28px;margin:0 0 12px}
-.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
-summary{list-style:none;display:flex;align-items:center;gap:12px;padding-left:24px;cursor:pointer;position:relative}
-summary::before{content:"▶";position:absolute;left:0;transition:transform .2s}
-[open]>summary::before{transform:rotate(90deg)}
-.delete-btn{background:var(--danger);border:none;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-left:auto;cursor:pointer}
-.delete-btn:hover{background:#c5271f}
-label{display:block;font-weight:600;margin:12px 0 4px}
-input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:#fdfdfd;transition:border-color .2s}
-input:focus,select:focus,textarea:focus{border-color:var(--primary);outline:0}
-.multi-select{min-height:120px}
-fieldset{border:0;padding:0}
-@media (min-width:600px){.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:20px}}
+body.section{padding-top:2rem}
+summary{cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;font-weight:600}
+summary::before{content:"\25B6";transition:transform .2s;font-size:.8rem}
+details[open]>summary::before{transform:rotate(90deg)}
+details.card{border:1px solid #dbdbdb;border-radius:6px;background:#fff;margin-bottom:1.5rem;box-shadow:0 2px 4px rgba(0,0,0,.06)}
+.delete-btn{background:#ff3860;border:none;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-left:auto;cursor:pointer}
+.delete-btn:hover{background:#ff1f4b}
+.has-help{cursor:help;margin-left:.25rem;color:#00d1b2;font-size:.9em}
+.multiselect{min-height:120px}
 </style>
 </head>
-<body>
-<h1>JSON Editor</h1>
-<div id="controls">
-  <input type="file" id="fileInput" accept=".json">
-  <button id="addBtn" disabled>Добавить вопрос</button>
-  <button id="downloadBtn" disabled>Сохранить файл</button>
+<body class="section">
+<div class="container">
+  <h1 class="title is-3">JSON Editor</h1>
+  <div class="columns is-vcentered is-multiline mb-4">
+    <div class="column is-narrow"><input id="fileInput" class="input" type="file" accept=".json"></div>
+    <div class="column is-narrow"><button id="addBtn" class="button is-light is-info" disabled>Добавить вопрос</button></div>
+    <div class="column is-narrow"><button id="downloadBtn" class="button is-info" disabled>Сохранить файл</button></div>
+  </div>
+  <div id="editor"></div>
 </div>
-<div id="editor"></div>
 <script>
 (function(){
-const skipKeys=['tone','occasion','season'];
-const categories=['Если у тебя было…','Если все считают, что ты…','Если ты выполнил задание на карте','Если ты ответил на вопрос','Если твой ответ совпал с кем-то или большинством','Если ты выиграл дуэль','Аргументируй и выбери что лучше'];
-const sets=['First Vibes','Crush Chronicles','Digital Drama','Spill Everything','Family','Popular Opinions','School & Work Drama','Style & Beauty Secrets','Main Character Energy','18+ No Filter','Throwback Therapy','Content Creator','Random Universe'];
+/* ------------------------------------------------------------ */
+/* Константы                                                     */
+/* ------------------------------------------------------------ */
+const skipKeys=['tone','occasion','season','catalog_id'];
+const categories=[
+  'Если у тебя было…','Если все считают, что ты…','Если ты выполнил задание на карте',
+  'Если ты ответил на вопрос','Если твой ответ совпал с кем-то или большинством',
+  'Если ты выиграл дуэль','Аргументируй и выбери что лучше'];
+const sets=[
+  'Sleepover','First Vibes','Crush Chronicles','Digital Drama','Spill Everything','Family',
+  'Popular Opinions','School & Work Drama','Style & Beauty Secrets','Main Character Energy',
+  '18+ No Filter','Throwback Therapy','Content Creator','Random Universe'];
 const languages=['ru','en','es','pt','fr','de'];
 const targets=['игрок слева','игрок справа','игрок напротив','случайный игрок','все','я'];
 const ctaMap={
@@ -54,37 +52,97 @@ const ctaMap={
   'Если ты выиграл дуэль':{primary:'Победила',secondary:'Проиграла'},
   'Аргументируй и выбери что лучше':{primary:'Выбрала',secondary:'Сложно'}
 };
+/* Базовый словарь: ключ → "Метка: описание"                     */
+const baseInfo={
+  id:'ID: уникальный идентификатор карточки',
+  catalog_id:'Каталог: коллекция наборов',
+  set_id:'Набор: колода/группа вопросов',
+  category:'Категория: тип условия',
+  call_to_action:'Кнопки действия: primary / secondary',
+  depth:'Глубина: уровень откровенности (0–3)',
+  spice:'Spice: степень пикантности (0–3)',
+  consent_required_level:'Уровень согласия (0–3)',
+  weight:'Вес: частота выпадения',
+  target_player:'Целевой игрок (eng code)',
+  target:'Целевой игрок',
+  targetplayer:'Целевой игрок',
+  locale_text:'Текст вопроса по языкам',
+  ab_variants_by_locale:'A/B варианты по языкам',
+  tags:'Теги (tone, occasion, season, segment)',
+  eligibility:'Правила доступности',
+  countries_allow:'Разрешённые страны',
+  languages:'Разрешённые языки',
+  min_age:'Минимальный возраст',
+  seasonality:'Сезонность показа',
+  start_utc:'Начало сезона (UTC)',
+  end_utc:'Конец сезона (UTC)',
+  boost_weight:'Усиление веса в сезон',
+  nsfw_light:'Лёгкое NSFW',
+  nsfw_18_plus:'18+ NSFW',
+  content_warnings:'Предупреждения о контенте',
+  paywall:'Платный доступ',
+  gated:'Закрыто под paywall?',
+  tier:'Уровень paywall',
+  status:'Статус модерации',
+  version:'Версия',
+  author:'Автор',
+  reviewer:'Рецензент',
+  created_at:'Дата создания',
+  updated_at:'Дата обновления',
+  placeholders:'Плейсхолдеры для подстановки',
+  notes:'Заметки'
+};
+/* ------------------------------------------------------------ */
+/* Состояние                                                    */
+/* ------------------------------------------------------------ */
 let data=[];let template=null;
-const fileInput=document.getElementById('fileInput');
-const addBtn=document.getElementById('addBtn');
-const downloadBtn=document.getElementById('downloadBtn');
-const editor=document.getElementById('editor');
-fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader;r.onload=o=>{try{data=JSON.parse(o.target.result);Array.isArray(data)||(data=[data]);template=JSON.parse(JSON.stringify(data[0]||{}));render();addBtn.disabled=false;downloadBtn.disabled=false}catch(err){alert('Неверный JSON: '+err.message)}};r.readAsText(f,'utf-8')});
-addBtn.addEventListener('click',()=>{const newObj=template?JSON.parse(JSON.stringify(template)):{id:''};newObj.id=crypto.randomUUID();data.push(newObj);render();});
-downloadBtn.addEventListener('click',()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='edited.json';a.click();URL.revokeObjectURL(url)});
-function render(){editor.innerHTML='';data.forEach((item,i)=>{if(!item.id||!isUUID(item.id))item.id=crypto.randomUUID();const det=el('details',{class:'card',open:true});const sum=el('summary');sum.appendChild(document.createTextNode(`Элемент ${i+1} — ${item.id}`));const del=el('button',{class:'delete-btn',type:'button'},'×');del.addEventListener('click',e=>{e.stopPropagation();if(confirm('Удалить вопрос?')){data.splice(i,1);render();}});sum.appendChild(del);det.appendChild(sum);
- const form=el('div',{class:'grid-two'});build(item,form,(p,v)=>update(i,p,v));det.appendChild(form);editor.appendChild(det)});}
-function build(obj,parent,onChange,prefix=''){Object.entries(obj).forEach(([k,v])=>{if(skipKeys.includes(k)){delete obj[k];return;}const path=prefix?prefix+'.'+k:k;const wrap=el('div');wrap.appendChild(el('label',{},k));if(k==='tags'){const init=Array.isArray(v)?v.join(', '):v||'';wrap.appendChild(input('text',init,e=>onChange(path,e.target.value.split(',').map(t=>t.trim()).filter(Boolean))));
-}else if(Array.isArray(v)&&v.every(s=>typeof s==='string')){wrap.appendChild(multiSelect(v,opts=>onChange(path,opts)));
-}else if(typeof v==='string'){
-  if(k==='category')wrap.appendChild(listSelect(categories,v,val=>{onChange(path,val);autoCTA(onChange,val);render()}));
-  else if(k==='setId'||k==='set_id')wrap.appendChild(listSelect(sets,v,val=>onChange(path,val)));
-  else if(k==='language')wrap.appendChild(listSelect(languages,v,val=>onChange(path,val)));
-  else if(k==='targetplayer')wrap.appendChild(listSelect(targets,v,val=>onChange(path,val)));
-  else if(isIso(v))wrap.appendChild(input('datetime-local',isoToLocal(v),e=>onChange(path,localToIso(e.target.value))));
-  else {const inp=input('text',v,e=>onChange(path,e.target.value));if(k==='id')inp.disabled=true;wrap.appendChild(inp);} }
-else if(typeof v==='number'){wrap.appendChild(input('number',v,e=>onChange(path,Number(e.target.value))))}
-else if(typeof v==='boolean'){const chk=input('checkbox',null,e=>onChange(path,e.target.checked));chk.checked=v;wrap.appendChild(chk)}
-else if(v&&typeof v==='object'){const fs=el('fieldset',{style:'border-left:2px solid var(--border);padding-left:12px'});build(v,fs,onChange,path);wrap.appendChild(fs)}
-else {const ta=el('textarea',{},JSON.stringify(v));ta.addEventListener('input',()=>{try{onChange(path,JSON.parse(ta.value));ta.style.borderColor='var(--border)'}catch{ta.style.borderColor='red'}});wrap.appendChild(ta);} parent.appendChild(wrap)});}
-function update(i,path,val){const keys=path.split('.');let ref=data[i];for(let j=0;j<keys.length-1;j++)ref=ref[keys[j]];ref[keys.at(-1)]=val}
-function autoCTA(ch,cat){const c=ctaMap[cat];if(!c)return;ch('call_to_action.primary',c.primary);ch('call_to_action.secondary',c.secondary)}
-// helpers
-function multiSelect(vals,handler){const sel=el('select',{multiple:true,class:'multi-select'});[...new Set(vals)].forEach(o=>sel.appendChild(el('option',{value:o,selected:true},o)));sel.addEventListener('change',()=>handler(Array.from(sel.selectedOptions).map(o=>o.value)));return sel}
-function listSelect(arr,val,cb){const sel=el('select');arr.forEach(o=>sel.appendChild(el('option',{value:o,selected:o===val},o)));sel.addEventListener('change',()=>cb(sel.value));return sel}
-function input(type,val,cb){const inp=el('input',{type});val!==null&&(type==='checkbox'?inp.checked=val:inp.value=val);inp.addEventListener('input',cb);return inp}
-function el(tag,attrs={},text){const e=document.createElement(tag);Object.entries(attrs).forEach(([k,v])=>e[k]=v);text&&e.appendChild(document.createTextNode(text));return e}
-const iso=/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/,uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;function isIso(s){return iso.test(s)}function isoToLocal(i){return new Date(i).toISOString().slice(0,16)}function localToIso(l){return new Date(l).toISOString()}function isUUID(s){return uuid.test(s)}
+const $=id=>document.getElementById(id);
+const fileInput=$('fileInput'),addBtn=$('addBtn'),downloadBtn=$('downloadBtn'),editor=$('editor');
+/* ------------------------------------------------------------ */
+fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader;r.onload=o=>{try{data=JSON.parse(o.target.result);Array.isArray(data)||(data=[data]);template=structuredClone(data[0]||{});scanInfo(template);render();addBtn.disabled=false;downloadBtn.disabled=false}catch(err){alert('Bad JSON')}};r.readAsText(f,'utf-8')};
+addBtn.onclick=()=>{const obj=template?structuredClone(template):{id:''};obj.id=crypto.randomUUID();data.push(obj);render();};
+downloadBtn.onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='edited.json';a.click();URL.revokeObjectURL(url)};
+/* дополняем словарь новыми ключами */
+function scanInfo(obj,prefix=''){for(const [k,v] of Object.entries(obj)){const key=prefix?`${prefix}.${k}`:k;if(!(key in baseInfo))baseInfo[key]=prettify(k);if(v&&typeof v==='object'&&!Array.isArray(v))scanInfo(v,key)}}
+const prettify=s=>s.replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,c=>c.toUpperCase());
+function labelHtml(full){const txt=baseInfo[full]||prettify(full);const [lab,desc]=txt.split(':');return `${lab}<span class="has-help" title="${desc||lab}"> ℹ️</span>`;}
+/* ------------------------------------------------------------ */
+function render(){editor.innerHTML='';data.forEach((item,i)=>{if(!item.id||!isUUID(item.id))item.id=crypto.randomUUID();const det=el('details',{class:'card',open:true});const sum=el('summary');sum.textContent=`${i+1}. ${item.id}`;const del=el('button',{class:'delete-btn'},'×');del.onclick=e=>{e.stopPropagation();if(confirm('Удалить?')){data.splice(i,1);render();}};sum.appendChild(del);det.appendChild(sum);
+ const body=el('div',{class:'columns is-multiline is-variable is-4 p-4'});buildFields(item,body,(p,v)=>update(i,p,v));det.appendChild(body);editor.appendChild(det)})}
+/* рекурсивное построение */
+function buildFields(obj,parent,onChange,prefix=''){for(const [k,v] of Object.entries(obj)){if(skipKeys.includes(k))continue;const path=prefix?`${prefix}.${k}`:k;const col=el('div',{class:'column is-half'});const lab=el('label',{class:'label'});lab.innerHTML=labelHtml(path);col.appendChild(lab);
+ if(k==='tags'){
+      const init=Array.isArray(v)?v.join(', '):v||'';
+      col.appendChild(input('text',init,e=>onChange(path,e.target.value.split(',').map(t=>t.trim()).filter(Boolean))));
+    }
+    else if(k==='placeholders'){
+      const init=typeof v==='string'?v:JSON.stringify(v);
+      col.appendChild(input('text',init,e=>{
+        try{onChange(path,JSON.parse(e.target.value));e.target.classList.remove('is-danger');}
+        catch{onChange(path,e.target.value);e.target.classList.add('is-danger');}
+      }));
+    }
+ else if(Array.isArray(v)&&v.every(s=>typeof s==='string')){col.appendChild(multiSelect(v,opts=>onChange(path,opts)))}
+ else if(typeof v==='string'){if(k==='category')col.appendChild(select(categories,v,val=>{onChange(path,val);autoCTA(onChange,val);}));else if(k==='setId'||k==='set_id')col.appendChild(select(sets,v,val=>onChange(path,val)));else if(k==='language')col.appendChild(select(languages,v,val=>onChange(path,val)));else if(['target','targetplayer','target_player'].includes(k))col.appendChild(select(targets,v,val=>onChange(path,val)));else if(isIso(v))col.appendChild(input('datetime-local',isoToLocal(v),e=>onChange(path,localToIso(e.target.value))));else{const inp=input('text',v,e=>onChange(path,e.target.value));if(k==='id')inp.disabled=true;col.appendChild(inp)}}
+ else if(typeof v==='number'){col.appendChild(input('number',v,e=>onChange(path,Number(e.target.value))))}
+ else if(typeof v==='boolean'){col.appendChild(input('checkbox',v,e=>onChange(path,e.target.checked)))}
+ else if(v&&typeof v==='object'){const box=el('div',{class:'box'});buildFields(v,box,onChange,path);col.appendChild(box)}
+ else{const ta=input('textarea',JSON.stringify(v));ta.oninput=()=>{try{onChange(path,JSON.parse(ta.value));ta.classList.remove('is-danger')}catch{ta.classList.add('is-danger')}};col.appendChild(ta)}
+ parent.appendChild(col)}}
+/* ------------------------------------------------------------ */
+function select(arr,val,cb){const wrap=el('div',{class:'select is-fullwidth'});const sel=el('select');arr.forEach(o=>sel.appendChild(el('option',{value:o,selected:o===val},o)));sel.onchange=()=>cb(sel.value);wrap.appendChild(sel);return wrap}
+function multiSelect(vals,cb){const wrap=el('div',{class:'select is-multiple is-fullwidth'});const sel=el('select',{multiple:true,size:4,class:'multiselect'});vals.forEach(o=>sel.appendChild(el('option',{value:o,selected:true},o)));sel.onchange=()=>cb([...sel.selectedOptions].map(o=>o.value));wrap.appendChild(sel);return wrap}
+function input(type,val,cb){if(type==='textarea'){const t=el('textarea',{class:'textarea'});t.value=val||'';cb&&t.addEventListener('input',cb);return t}if(type==='checkbox'){const chk=el('input',{type:'checkbox'});chk.checked=val;cb&&chk.addEventListener('input',cb);return chk}const inp=el('input',{type,class:'input'});if(val!==null)inp.value=val;cb&&inp.addEventListener('input',cb);return inp}
+/* ------------------------------------------------------------ */
+function el(t,a={},txt){const e=document.createElement(t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.appendChild(document.createTextNode(txt));return e}
+function update(idx,p,val){const keys=p.split('.');let ref=data[idx];for(let i=0;i<keys.length-1;i++)ref=ref[keys[i]];ref[keys.at(-1)]=val}
+function autoCTA(ch,cat){const c=ctaMap[cat];if(c){ch('call_to_action.primary',c.primary);ch('call_to_action.secondary',c.secondary)}}
+const iso=/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isIso=s=>iso.test(s);
+const isoToLocal=i=>new Date(i).toISOString().slice(0,16);
+const localToIso=l=>new Date(l).toISOString();
+const isUUID=s=>uuid.test(s);
 })();
 </script>
 </body>
