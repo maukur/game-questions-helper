@@ -5,263 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JSON Editor</title>
 <style>
-:root{
-  --bg:#f5f7fa;
-  --card-bg:#ffffff;
-  --primary:#0066ff;
-  --primary-hover:#004cc7;
-  --border:#e0e6ef;
-  --radius:12px;
-  --shadow:0 4px 12px rgba(0,0,0,.08);
-  --font:"Segoe UI", "SF Pro", Roboto, Helvetica, Arial, sans-serif;
-}
-*{box-sizing:border-box;}
-body{
-  margin:0;
-  background:var(--bg);
-  font-family:var(--font);
-  color:#1f2937;
-  line-height:1.4;
-  padding:24px;
-}
-h1{
-  font-size:28px;
-  margin-bottom:16px;
-}
-button,input,select,textarea{
-  font-family:inherit;
-  font-size:14px;
-}
-button{
-  background:var(--primary);
-  color:#fff;
-  border:none;
-  padding:8px 18px;
-  border-radius:var(--radius);
-  cursor:pointer;
-  transition:background .2s;
-}
-button[disabled]{
-  opacity:.4;
-  cursor:not-allowed;
-}
-button:not([disabled]):hover{
-  background:var(--primary-hover);
-}
-#controls{
-  display:flex;
-  gap:12px;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-}
-.card{
-  background:var(--card-bg);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:18px;
-  margin-bottom:16px;
-}
-summary{
-  list-style:none;
-  position:relative;
-  padding-left:20px;
-  cursor:pointer;
-}
-summary::before{content:"▶";position:absolute;left:0;transition:transform .2s;}
-[open]>summary::before{transform:rotate(90deg);} 
-label{
-  display:block;
-  font-weight:600;
-  margin:12px 0 4px;
-}
-input[type="text"],input[type="number"],input[type="datetime-local"],select,textarea{
-  width:100%;
-  padding:8px 10px;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  background:#fdfdfd;
-  transition:border-color .2s;
-}
-input:focus,select:focus,textarea:focus{
-  border-color:var(--primary);
-  outline:none;
-}
-.multi-select{
-  min-height:120px;
-}
-fieldset{
-  border:none;
-  padding:0;
-}
-@media (min-width:600px){
-  .grid-two{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-  }
-}
+:root{--bg:#f5f7fa;--card-bg:#fff;--primary:#0066ff;--primary-hover:#004cc7;--danger:#ff3b30;--border:#e0e6ef;--radius:12px;--shadow:0 4px 12px rgba(0,0,0,.08);--font:"Segoe UI","SF Pro",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:var(--font);color:#1f2937;line-height:1.4;padding:24px}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+button{background:var(--primary);color:#fff;border:none;padding:6px 16px;border-radius:var(--radius);cursor:pointer;transition:background .2s}
+button[disabled]{opacity:.4;cursor:not-allowed}
+button:not([disabled]):hover{background:var(--primary-hover)}
+.btn-danger{background:var(--danger)}
+.btn-danger:hover{background:#c5271f}
+#controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+h1{font-size:28px;margin:0 0 12px}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+summary{list-style:none;display:flex;align-items:center;gap:12px;padding-left:24px;cursor:pointer;position:relative}
+summary::before{content:"▶";position:absolute;left:0;transition:transform .2s}
+[open]>summary::before{transform:rotate(90deg)}
+.delete-btn{background:var(--danger);border:none;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-left:auto;cursor:pointer}
+.delete-btn:hover{background:#c5271f}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:#fdfdfd;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);outline:0}
+.multi-select{min-height:120px}
+fieldset{border:0;padding:0}
+@media (min-width:600px){.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:20px}}
 </style>
 </head>
 <body>
-  <h1>JSON Editor</h1>
-  <div id="controls">
-    <input type="file" id="fileInput" accept=".json">
-    <button id="downloadBtn" disabled>Сохранить файл</button>
-  </div>
-  <div id="editor"></div>
-
+<h1>JSON Editor</h1>
+<div id="controls">
+  <input type="file" id="fileInput" accept=".json">
+  <button id="addBtn" disabled>Добавить вопрос</button>
+  <button id="downloadBtn" disabled>Сохранить файл</button>
+</div>
+<div id="editor"></div>
 <script>
 (function(){
-  let jsonData = [];
-  const fileInput = document.getElementById('fileInput');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const editorDiv = document.getElementById('editor');
-
-  fileInput.addEventListener('change', handleFileSelect);
-  downloadBtn.addEventListener('click', downloadFile);
-
-  function handleFileSelect(evt){
-    const file = evt.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = e=>{
-      try{
-        jsonData = JSON.parse(e.target.result);
-        if(!Array.isArray(jsonData)) jsonData = [jsonData];
-        renderEditor();
-        downloadBtn.disabled = false;
-      }catch(err){
-        alert('Неверный JSON: '+err.message);
-      }
-    };
-    reader.readAsText(file,'utf-8');
-  }
-
-  function renderEditor(){
-    editorDiv.innerHTML = '';
-    jsonData.forEach((item, idx)=>{
-      if(!item.id || !isUUID(item.id)) item.id = crypto.randomUUID();
-      const details = document.createElement('details');
-      details.className='card';
-      details.open = true;
-      const summary = document.createElement('summary');
-      summary.textContent = `Элемент ${idx+1} — ${item.id}`;
-      details.appendChild(summary);
-      const form = document.createElement('div');
-      form.className = 'grid-two';
-      buildForm(item, form, (path,val)=>updateJson(idx, path, val));
-      details.appendChild(form);
-      editorDiv.appendChild(details);
-    });
-  }
-
-  function buildForm(obj, parent, onChange, prefix=''){
-    Object.entries(obj).forEach(([key, value])=>{
-      const path = prefix? prefix+'.'+key : key;
-      const wrapper = document.createElement('div');
-      const label = document.createElement('label');
-      label.textContent = key;
-      wrapper.appendChild(label);
-
-      if(Array.isArray(value) && value.every(v=>typeof v==='string')){
-        const select = document.createElement('select');
-        select.multiple = true;
-        select.className='multi-select';
-        const unique = [...new Set(value)];
-        unique.forEach(opt=>{
-          const o = document.createElement('option');
-          o.value = opt;
-          o.textContent = opt;
-          o.selected = true;
-          select.appendChild(o);
-        });
-        select.addEventListener('change',()=>{
-          const selected = Array.from(select.selectedOptions).map(o=>o.value);
-          onChange(path,selected);
-        });
-        wrapper.appendChild(select);
-      }else if(typeof value==='string'){
-        if(key==='category'){
-          const select = document.createElement('select');
-          const categories=['challenge','truth','dare','question'];
-          categories.forEach(cat=>{
-            const o=document.createElement('option');
-            o.value=cat;
-            o.textContent=cat;
-            if(cat===value) o.selected=true;
-            select.appendChild(o);
-          });
-          select.addEventListener('change',()=>onChange(path,select.value));
-          wrapper.appendChild(select);
-        }else if(isIsoDate(value)){
-          const input=document.createElement('input');
-          input.type='datetime-local';
-          input.value=isoToLocal(value);
-          input.addEventListener('input',()=>onChange(path,localToIso(input.value)));
-          wrapper.appendChild(input);
-        }else{
-          const input=document.createElement('input');
-          input.type='text';
-          input.value=value;
-          if(key==='id') input.disabled=true;
-          input.addEventListener('input',()=>onChange(path,input.value));
-          wrapper.appendChild(input);
-        }
-      }else if(typeof value==='number'){
-        const input=document.createElement('input');
-        input.type='number';
-        input.value=value;
-        input.addEventListener('input',()=>onChange(path,Number(input.value)));
-        wrapper.appendChild(input);
-      }else if(typeof value==='boolean'){
-        const chk=document.createElement('input');
-        chk.type='checkbox';
-        chk.checked=value;
-        chk.addEventListener('change',()=>onChange(path,chk.checked));
-        wrapper.appendChild(chk);
-      }else if(typeof value==='object' && value!==null){
-        const subFieldset=document.createElement('fieldset');
-        subFieldset.style.borderLeft='2px solid var(--border)';
-        subFieldset.style.paddingLeft='12px';
-        buildForm(value, subFieldset, onChange, path);
-        wrapper.appendChild(subFieldset);
-      }else{
-        const textarea=document.createElement('textarea');
-        textarea.value=JSON.stringify(value);
-        textarea.addEventListener('input',()=>{
-          try{
-            onChange(path,JSON.parse(textarea.value));
-            textarea.style.borderColor='var(--border)';
-          }catch{textarea.style.borderColor='red';}
-        });
-        wrapper.appendChild(textarea);
-      }
-      parent.appendChild(wrapper);
-    });
-  }
-
-  function updateJson(idx,path,val){
-    const keys=path.split('.');
-    let ref=jsonData[idx];
-    for(let i=0;i<keys.length-1;i++) ref=ref[keys[i]];
-    ref[keys.at(-1)]=val;
-  }
-
-  function downloadFile(){
-    const blob=new Blob([JSON.stringify(jsonData,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download='edited.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function isIsoDate(str){return /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/.test(str);}  
-  function isoToLocal(iso){return new Date(iso).toISOString().slice(0,16);}  
-  function localToIso(local){return new Date(local).toISOString();}  
-  function isUUID(str){return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);}  
+const skipKeys=['tone','occasion','season'];
+const categories=['Если у тебя было…','Если все считают, что ты…','Если ты выполнил задание на карте','Если ты ответил на вопрос','Если твой ответ совпал с кем-то или большинством','Если ты выиграл дуэль','Аргументируй и выбери что лучше'];
+const sets=['First Vibes','Crush Chronicles','Digital Drama','Spill Everything','Family','Popular Opinions','School & Work Drama','Style & Beauty Secrets','Main Character Energy','18+ No Filter','Throwback Therapy','Content Creator','Random Universe'];
+const languages=['ru','en','es','pt','fr','de'];
+const targets=['игрок слева','игрок справа','игрок напротив','случайный игрок','все','я'];
+const ctaMap={
+  'Если у тебя было…':{primary:'Было',secondary:'Не было'},
+  'Если все считают, что ты…':{primary:'Это я',secondary:'Не я'},
+  'Если ты выполнил задание на карте':{primary:'Сделала',secondary:'Пас'},
+  'Если ты ответил на вопрос':{primary:'Рассказала',secondary:'Молчу'},
+  'Если твой ответ совпал с кем-то или большинством':{primary:'Совпало',secondary:'Не совпало'},
+  'Если ты выиграл дуэль':{primary:'Победила',secondary:'Проиграла'},
+  'Аргументируй и выбери что лучше':{primary:'Выбрала',secondary:'Сложно'}
+};
+let data=[];let template=null;
+const fileInput=document.getElementById('fileInput');
+const addBtn=document.getElementById('addBtn');
+const downloadBtn=document.getElementById('downloadBtn');
+const editor=document.getElementById('editor');
+fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader;r.onload=o=>{try{data=JSON.parse(o.target.result);Array.isArray(data)||(data=[data]);template=JSON.parse(JSON.stringify(data[0]||{}));render();addBtn.disabled=false;downloadBtn.disabled=false}catch(err){alert('Неверный JSON: '+err.message)}};r.readAsText(f,'utf-8')});
+addBtn.addEventListener('click',()=>{const newObj=template?JSON.parse(JSON.stringify(template)):{id:''};newObj.id=crypto.randomUUID();data.push(newObj);render();});
+downloadBtn.addEventListener('click',()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='edited.json';a.click();URL.revokeObjectURL(url)});
+function render(){editor.innerHTML='';data.forEach((item,i)=>{if(!item.id||!isUUID(item.id))item.id=crypto.randomUUID();const det=el('details',{class:'card',open:true});const sum=el('summary');sum.appendChild(document.createTextNode(`Элемент ${i+1} — ${item.id}`));const del=el('button',{class:'delete-btn',type:'button'},'×');del.addEventListener('click',e=>{e.stopPropagation();if(confirm('Удалить вопрос?')){data.splice(i,1);render();}});sum.appendChild(del);det.appendChild(sum);
+ const form=el('div',{class:'grid-two'});build(item,form,(p,v)=>update(i,p,v));det.appendChild(form);editor.appendChild(det)});}
+function build(obj,parent,onChange,prefix=''){Object.entries(obj).forEach(([k,v])=>{if(skipKeys.includes(k)){delete obj[k];return;}const path=prefix?prefix+'.'+k:k;const wrap=el('div');wrap.appendChild(el('label',{},k));if(k==='tags'){const init=Array.isArray(v)?v.join(', '):v||'';wrap.appendChild(input('text',init,e=>onChange(path,e.target.value.split(',').map(t=>t.trim()).filter(Boolean))));
+}else if(Array.isArray(v)&&v.every(s=>typeof s==='string')){wrap.appendChild(multiSelect(v,opts=>onChange(path,opts)));
+}else if(typeof v==='string'){
+  if(k==='category')wrap.appendChild(listSelect(categories,v,val=>{onChange(path,val);autoCTA(onChange,val);render()}));
+  else if(k==='setId'||k==='set_id')wrap.appendChild(listSelect(sets,v,val=>onChange(path,val)));
+  else if(k==='language')wrap.appendChild(listSelect(languages,v,val=>onChange(path,val)));
+  else if(k==='targetplayer')wrap.appendChild(listSelect(targets,v,val=>onChange(path,val)));
+  else if(isIso(v))wrap.appendChild(input('datetime-local',isoToLocal(v),e=>onChange(path,localToIso(e.target.value))));
+  else {const inp=input('text',v,e=>onChange(path,e.target.value));if(k==='id')inp.disabled=true;wrap.appendChild(inp);} }
+else if(typeof v==='number'){wrap.appendChild(input('number',v,e=>onChange(path,Number(e.target.value))))}
+else if(typeof v==='boolean'){const chk=input('checkbox',null,e=>onChange(path,e.target.checked));chk.checked=v;wrap.appendChild(chk)}
+else if(v&&typeof v==='object'){const fs=el('fieldset',{style:'border-left:2px solid var(--border);padding-left:12px'});build(v,fs,onChange,path);wrap.appendChild(fs)}
+else {const ta=el('textarea',{},JSON.stringify(v));ta.addEventListener('input',()=>{try{onChange(path,JSON.parse(ta.value));ta.style.borderColor='var(--border)'}catch{ta.style.borderColor='red'}});wrap.appendChild(ta);} parent.appendChild(wrap)});}
+function update(i,path,val){const keys=path.split('.');let ref=data[i];for(let j=0;j<keys.length-1;j++)ref=ref[keys[j]];ref[keys.at(-1)]=val}
+function autoCTA(ch,cat){const c=ctaMap[cat];if(!c)return;ch('call_to_action.primary',c.primary);ch('call_to_action.secondary',c.secondary)}
+// helpers
+function multiSelect(vals,handler){const sel=el('select',{multiple:true,class:'multi-select'});[...new Set(vals)].forEach(o=>sel.appendChild(el('option',{value:o,selected:true},o)));sel.addEventListener('change',()=>handler(Array.from(sel.selectedOptions).map(o=>o.value)));return sel}
+function listSelect(arr,val,cb){const sel=el('select');arr.forEach(o=>sel.appendChild(el('option',{value:o,selected:o===val},o)));sel.addEventListener('change',()=>cb(sel.value));return sel}
+function input(type,val,cb){const inp=el('input',{type});val!==null&&(type==='checkbox'?inp.checked=val:inp.value=val);inp.addEventListener('input',cb);return inp}
+function el(tag,attrs={},text){const e=document.createElement(tag);Object.entries(attrs).forEach(([k,v])=>e[k]=v);text&&e.appendChild(document.createTextNode(text));return e}
+const iso=/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/,uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;function isIso(s){return iso.test(s)}function isoToLocal(i){return new Date(i).toISOString().slice(0,16)}function localToIso(l){return new Date(l).toISOString()}function isUUID(s){return uuid.test(s)}
 })();
 </script>
 </body>
