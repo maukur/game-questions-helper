@@ -1,317 +1,192 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>JSON Челлендж-редактор</title>
-  <style>
-    body { font-family: Inter, Arial, sans-serif; background: #f8fafc; margin: 0; padding: 0;}
-    .container { max-width: 700px; margin: 30px auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 20px #0001; padding: 32px 24px; }
-    h1 { font-size: 2rem; margin-bottom: 20px;}
-    label { font-weight: 600; margin-bottom: 6px; display: block; }
-    input, select, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; margin-bottom: 18px; font-size: 1rem;}
-    textarea { min-height: 48px; }
-    .multi-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px;}
-    .multi-item { border: 1px solid #d1d5db; background: #f3f4f6; border-radius: 16px; padding: 3px 10px; font-size: 0.96rem;}
-    .multi-checkbox { margin-right: 5px; }
-    .btn { background: #2463eb; color: #fff; border: none; border-radius: 9px; padding: 10px 22px; font-weight: 600; cursor: pointer; font-size: 1.1rem; margin-top: 6px;}
-    .btn[disabled] { opacity: 0.4; cursor: default; }
-    .btn-secondary { background: #fff; color: #2463eb; border: 1.5px solid #2463eb;}
-    .row { display: flex; gap: 18px;}
-    .col { flex: 1; }
-    @media (max-width: 700px) {
-      .container { padding: 16px 4vw; }
-    }
-  </style>
+<meta charset="UTF-8">
+<title>JSON Editor</title>
+<style>
+body{font-family:Arial, sans-serif;margin:20px;}
+input,select,button,textarea{margin:4px 0;padding:4px;font-size:14px;}
+fieldset{border:1px solid #ccc;padding:10px;margin-bottom:10px;}
+details{border:1px solid #999;padding:6px;margin-bottom:8px;border-radius:4px;}
+summary{font-weight:bold;cursor:pointer;}
+label{display:block;margin-top:6px;}
+.multi-select{min-width:200px;min-height:80px;}
+</style>
 </head>
 <body>
-<div id="root"></div>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<h2>JSON Editor</h2>
+
+<input type="file" id="fileInput" accept=".json">
+<button id="downloadBtn" disabled>Сохранить файл</button>
+<div id="editor"></div>
+
 <script>
-const { useRef, useState } = React;
+(function(){
+  let jsonData = [];
+  const fileInput = document.getElementById('fileInput');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const editorDiv = document.getElementById('editor');
 
-// Все варианты пиклистов
-const CATEGORIES = [
-  { value: "challenge", label: "Челлендж" },
-  { value: "action", label: "Action" },
-  { value: "truth", label: "Truth" }
-];
-const COUNTRIES = [
-  { value: "US", label: "США" },
-  { value: "RU", label: "Россия" },
-  { value: "UK", label: "Великобритания" }
-];
-const LANGS = [
-  { value: "ru", label: "Русский" },
-  { value: "en", label: "English" }
-];
+  fileInput.addEventListener('change', handleFileSelect);
+  downloadBtn.addEventListener('click', downloadFile);
 
-// UUID генератор (RFC4122, v4)
-function uuidv4() {
-  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-  );
-}
-
-// MultiPicklist компонент
-function MultiPicklist({options, values, onChange}) {
-  const handleToggle = val => {
-    if (values.includes(val)) onChange(values.filter(v => v !== val));
-    else onChange([...values, val]);
-  };
-  return (
-    <div className="multi-list">
-      {options.map(opt =>
-        <label className="multi-item" key={opt.value}>
-          <input
-            className="multi-checkbox"
-            type="checkbox"
-            checked={values.includes(opt.value)}
-            onChange={() => handleToggle(opt.value)}
-          />
-          {opt.label}
-        </label>
-      )}
-    </div>
-  );
-}
-
-function App() {
-  const [data, setData] = useState(null);
-  const fileInput = useRef();
-
-  // Функции для изменения state
-  const handleField = (field, value) => setData({...data, [field]: value});
-  const handleEligibility = (field, value) => setData({...data, eligibility: {...data.eligibility, [field]: value}});
-  const handleLocaleText = value => setData({...data, locale_text: {ru: value}});
-  const handleAbVariants = value => setData({...data, ab_variants_by_locale: {ru: value.split('\n').filter(Boolean)}});
-  const handleSeasonality = (field, value) =>
-    setData({...data, seasonality: {...data.seasonality, [field]: value}});
-  const handlePaywall = (field, value) =>
-    setData({...data, paywall: {...data.paywall, [field]: value}});
-  const handleTags = (field, value) =>
-    setData({...data, tags: {...data.tags, [field]: value.split(',').map(s => s.trim()).filter(Boolean)}});
-
-  // Загрузка файла
-  const handleFile = e => {
-    const file = e.target.files[0];
-    if (!file) return;
+  function handleFileSelect(evt){
+    const file = evt.target.files[0];
+    if(!file) return;
     const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        let obj = JSON.parse(evt.target.result);
-        if (!obj.id) obj.id = uuidv4();
-        setData(obj);
-      } catch {
-        alert("Файл невалидный JSON");
+    reader.onload = e=>{
+      try{
+        jsonData = JSON.parse(e.target.result);
+        if(!Array.isArray(jsonData)){
+          jsonData = [jsonData];
+        }
+        renderEditor();
+        downloadBtn.disabled = false;
+      }catch(err){
+        alert('Неверный JSON: '+err.message);
       }
     };
-    reader.readAsText(file);
-  };
+    reader.readAsText(file,'utf-8');
+  }
 
-  // Скачивание файла
-  const handleSave = () => {
-    if (!data.id) data.id = uuidv4();
-    const out = JSON.stringify(data, null, 2);
-    const blob = new Blob([out], {type: "application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "challenge.json";
+  function renderEditor(){
+    editorDiv.innerHTML = '';
+    jsonData.forEach((item, idx)=>{
+      if(!item.id || !isUUID(item.id)){
+        item.id = crypto.randomUUID();
+      }
+      const container = document.createElement('details');
+      container.open = true;
+      const summary = document.createElement('summary');
+      summary.textContent = 'Элемент '+(idx+1)+' — '+item.id;
+      container.appendChild(summary);
+
+      const form = document.createElement('div');
+      buildForm(item, form, (path,val)=>updateJson(idx, path, val));
+      container.appendChild(form);
+      editorDiv.appendChild(container);
+    });
+  }
+
+  function buildForm(obj, parent, onChange, prefix=''){
+    Object.entries(obj).forEach(([key, value])=>{
+      const path = prefix? prefix+'.'+key : key;
+      const label = document.createElement('label');
+      label.textContent = key;
+      parent.appendChild(label);
+
+      if(Array.isArray(value) && value.every(v=>typeof v==='string')){
+        const select = document.createElement('select');
+        select.multiple = true;
+        select.className='multi-select';
+        const options = [...new Set(value)];
+        options.forEach(opt=>{
+          const option = document.createElement('option');
+          option.value = opt;
+          option.selected = true;
+          option.textContent = opt;
+          select.appendChild(option);
+        });
+        select.addEventListener('change',()=>{
+          const selected = Array.from(select.selectedOptions).map(o=>o.value);
+          onChange(path,selected);
+        });
+        parent.appendChild(select);
+      }else if(typeof value==='string'){
+        if(key==='category'){
+          const select = document.createElement('select');
+          const categories = ['challenge','truth','dare','question'];
+          categories.forEach(cat=>{
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            if(cat===value) option.selected = true;
+            select.appendChild(option);
+          });
+          select.addEventListener('change',()=>onChange(path,select.value));
+          parent.appendChild(select);
+        }else if(isIsoDate(value)){
+          const input = document.createElement('input');
+          input.type='datetime-local';
+          input.value = isoToLocal(value);
+          input.addEventListener('input',()=>onChange(path,localToIso(input.value)));
+          parent.appendChild(input);
+        }else{
+          const input = document.createElement('input');
+          input.type='text';
+          input.value=value;
+          if(key==='id') input.disabled=true;
+          input.addEventListener('input',()=>onChange(path,input.value));
+          parent.appendChild(input);
+        }
+      }else if(typeof value==='number'){
+        const input = document.createElement('input');
+        input.type='number';
+        input.value=value;
+        input.addEventListener('input',()=>onChange(path,Number(input.value)));
+        parent.appendChild(input);
+      }else if(typeof value==='boolean'){
+        const input = document.createElement('input');
+        input.type='checkbox';
+        input.checked=value;
+        input.addEventListener('change',()=>onChange(path,input.checked));
+        parent.appendChild(input);
+      }else if(typeof value==='object' && value!==null){
+        const fieldset = document.createElement('fieldset');
+        buildForm(value, fieldset, onChange, path);
+        parent.appendChild(fieldset);
+      }else{
+        const textarea = document.createElement('textarea');
+        textarea.value = JSON.stringify(value);
+        textarea.addEventListener('input',()=>{
+          try{
+            onChange(path,JSON.parse(textarea.value));
+            textarea.style.borderColor='';
+          }catch{
+            textarea.style.borderColor='red';
+          }
+        });
+        parent.appendChild(textarea);
+      }
+    });
+  }
+
+  function updateJson(idx, path, newVal){
+    const keys = path.split('.');
+    let ref = jsonData[idx];
+    for(let i=0;i<keys.length-1;i++){
+      ref = ref[keys[i]];
+    }
+    ref[keys[keys.length-1]] = newVal;
+  }
+
+  function downloadFile(){
+    const blob = new Blob([JSON.stringify(jsonData,null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url;
+    a.download='edited.json';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
-  };
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
 
-  // Стартовая кнопка
-  if (!data) return (
-    <div className="container" style={{textAlign:'center'}}>
-      <h1>Редактор JSON челленджа</h1>
-      <input
-        type="file"
-        accept=".json,application/json"
-        style={{marginBottom: 16}}
-        ref={fileInput}
-        onChange={handleFile}
-      />
-      <div style="margin:16px 0 0 0;">
-        <button className="btn btn-secondary"
-          onClick={() => {
-            setData({
-              id: uuidv4(),
-              catalog_id: "",
-              set_id: "",
-              category: "challenge",
-              call_to_action: { primary: "", secondary: "" },
-              depth: 2,
-              spice: 0,
-              consent_required_level: 0,
-              weight: 1,
-              target_player: "",
-              locale_text: { ru: "" },
-              ab_variants_by_locale: { ru: [] },
-              tags: { tone: [], occasion: [], season: [], segment: [] },
-              eligibility: { countries_allow: [], languages: [], min_age: 0 },
-              seasonality: { start_utc: "", end_utc: "", boost_weight: 0 },
-              nsfw_light: false,
-              nsfw_18_plus: false,
-              content_warnings: [],
-              paywall: { gated: false, tier: null },
-              status: "",
-              version: 1,
-              author: "",
-              reviewer: "",
-              created_at: "",
-              updated_at: "",
-              placeholders: [],
-              notes: ""
-            });
-          }}
-        >Создать новый</button>
-      </div>
-    </div>
-  );
-
-  // Рендер формы
-  return (
-    <div className="container">
-      <h1>Редактор JSON челленджа</h1>
-      <label>Категория</label>
-      <select
-        value={data.category}
-        onChange={e => handleField("category", e.target.value)}
-      >
-        {CATEGORIES.map(opt =>
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        )}
-      </select>
-
-      <label>Текст задания (ru)</label>
-      <input
-        value={data.locale_text?.ru || ""}
-        onChange={e => handleLocaleText(e.target.value)}
-      />
-
-      <label>AB варианты (ru, каждый вариант с новой строки)</label>
-      <textarea
-        value={data.ab_variants_by_locale?.ru?.join('\n') || ""}
-        onChange={e => handleAbVariants(e.target.value)}
-      />
-
-      <label>Разрешённые страны</label>
-      <MultiPicklist
-        options={COUNTRIES}
-        values={data.eligibility.countries_allow || []}
-        onChange={vals => handleEligibility("countries_allow", vals)}
-      />
-
-      <label>Языки</label>
-      <MultiPicklist
-        options={LANGS}
-        values={data.eligibility.languages || []}
-        onChange={vals => handleEligibility("languages", vals)}
-      />
-
-      <label>Минимальный возраст</label>
-      <input
-        type="number"
-        min="0"
-        value={data.eligibility.min_age}
-        onChange={e => handleEligibility("min_age", parseInt(e.target.value) || 0)}
-      />
-
-      <label>Дата начала (UTC)</label>
-      <input
-        type="datetime-local"
-        value={data.seasonality.start_utc ? data.seasonality.start_utc.slice(0,16) : ""}
-        onChange={e => handleSeasonality("start_utc", e.target.value)}
-      />
-      <label>Дата конца (UTC)</label>
-      <input
-        type="datetime-local"
-        value={data.seasonality.end_utc ? data.seasonality.end_utc.slice(0,16) : ""}
-        onChange={e => handleSeasonality("end_utc", e.target.value)}
-      />
-
-      <div className="row">
-        <div className="col">
-          <label>Вес</label>
-          <input
-            type="number"
-            min="0"
-            value={data.weight}
-            onChange={e => handleField("weight", parseInt(e.target.value) || 0)}
-          />
-        </div>
-        <div className="col">
-          <label>Spice</label>
-          <input
-            type="number"
-            min="0"
-            value={data.spice}
-            onChange={e => handleField("spice", parseInt(e.target.value) || 0)}
-          />
-        </div>
-      </div>
-
-      <label>Подсказки (tone, через запятую)</label>
-      <input
-        value={data.tags.tone.join(', ')}
-        onChange={e => handleTags("tone", e.target.value)}
-      />
-
-      <label>Сегменты (segment, через запятую)</label>
-      <input
-        value={data.tags.segment.join(', ')}
-        onChange={e => handleTags("segment", e.target.value)}
-      />
-
-      <label>Сезон (season, через запятую)</label>
-      <input
-        value={data.tags.season.join(', ')}
-        onChange={e => handleTags("season", e.target.value)}
-      />
-
-      <label>Поводы (occasion, через запятую)</label>
-      <input
-        value={data.tags.occasion.join(', ')}
-        onChange={e => handleTags("occasion", e.target.value)}
-      />
-
-      <label>Call To Action (primary)</label>
-      <input
-        value={data.call_to_action.primary}
-        onChange={e => setData({...data, call_to_action: {...data.call_to_action, primary: e.target.value}})}
-      />
-
-      <label>Call To Action (secondary)</label>
-      <input
-        value={data.call_to_action.secondary}
-        onChange={e => setData({...data, call_to_action: {...data.call_to_action, secondary: e.target.value}})}
-      />
-
-      <label>Статус</label>
-      <input
-        value={data.status}
-        onChange={e => handleField("status", e.target.value)}
-      />
-
-      <label>Notes</label>
-      <textarea
-        value={data.notes}
-        onChange={e => handleField("notes", e.target.value)}
-      />
-
-      <div style="margin:22px 0 12px 0">
-        <button className="btn" onClick={handleSave}>Скачать JSON</button>
-        <button className="btn btn-secondary" style="margin-left:14px"
-          onClick={() => fileInput.current.click()}>Загрузить другой файл</button>
-        <input type="file" style="display:none" ref={fileInput} onChange={handleFile}/>
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  function isIsoDate(str){
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(str);
+  }
+  function isoToLocal(iso){
+    const d = new Date(iso);
+    return d.toISOString().slice(0,16);
+  }
+  function localToIso(local){
+    return new Date(local).toISOString();
+  }
+  function isUUID(str){
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  }
+})();
 </script>
 </body>
 </html>
