@@ -1,11 +1,1633 @@
-<!DOCTYPE html>
-<html lang="en">
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                console.log('🚀 Initializing Sleepover Cards Editor...');
+                
+                // Загружаем данные из localStorage
+                loadFromLocalStorage();
+                
+                // Инициализируем компоненты
+                initMultiSelect();
+                attachEventListeners();
+                updateStats();
+                
+                // Если карточек нет, создаем первую
+                if (cardsData.length === 0) {
+                    console.log('📝 No cards found, creating first card...');
+                    addNewCard();
+                } else {
+                    console.log('📋 Cards loaded from localStorage:', cardsData.length);
+                }
+                
+                console.log('✅ Sleepover Cards Editor initialized successfully!');
+                console.log('🔧 Available functions:', {
+                    addNewCard: 'Добавить новую карточку',
+                    selectCard: 'Выбрать карточку по индексу',
+                    deleteCard: 'Удалить карточку по индексу',
+                    validateCard: 'Валидировать карточку',
+                    saveToLocalStorage: 'Сохранить в localStorage',
+                    loadFromLocalStorage: 'Загрузить из localStorage'
+                });
+                
+            } catch (error) {
+                console.error('💥 Initialization Error:', error);
+                alert('Ошибка<!DOCTYPE html>
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Game Questions Helper</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleepover Cards Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr 400px;
+            gap: 0;
+            min-height: 700px;
+        }
+
+        /* Левая панель - список карточек */
+        .cards-sidebar {
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 700px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .add-card-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-card-btn:hover {
+            background: #218838;
+        }
+
+        .cards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card-item {
+            padding: 12px;
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .card-item:hover {
+            border-color: #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-item.active {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .card-item.invalid {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .card-preview {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .card-text {
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-tags {
+            font-size: 10px;
+            color: #888;
+        }
+
+        .delete-card {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .card-item:hover .delete-card {
+            opacity: 1;
+        }
+
+        /* Центральная панель - редактор */
+        .editor-section {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 700px;
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+            border-bottom: 3px solid #ff6b6b;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .form-group.required label::after {
+            content: ' *';
+            color: #dc3545;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group.error input,
+        .form-group.error select,
+        .form-group.error textarea {
+            border-color: #dc3545;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+
+        .multi-select {
+            position: relative;
+        }
+
+        .multi-select-container {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            min-height: 44px;
+            padding: 8px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .multi-select-container:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .selected-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .selected-item {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .selected-item .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-options.active {
+            display: block;
+        }
+
+        .dropdown-option {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .dropdown-option:hover {
+            background: #f8f9fa;
+        }
+
+        .dropdown-option.selected {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .subsection {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .subsection h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        /* Правая панель - JSON */
+        .json-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-left: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .json-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            flex: 1;
+            border: none;
+            resize: none;
+        }
+
+        /* Кнопки */
+        .toolbar {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .file-input {
+            margin-bottom: 20px;
+        }
+
+        .file-input input[type="file"] {
+            display: none;
+        }
+
+        .file-input label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #17a2b8;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .file-input label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stats {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .stats-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .cards-sidebar {
+                max-height: 200px;
+            }
+        }
+
+        .no-card-selected {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #666;
+            text-align: center;
+        }
+
+        .no-card-selected h3 {
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        .validation-summary {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .validation-summary h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .validation-summary ul {
+            color: #856404;
+            margin-left: 20px;
+        }
+
+        .validation-summary li {
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Welcome to Game Questions Helper</h1>
-  <p>This site will provide information about game questions.</p>
-</body>
-</html>
+    <div class="container">
+        <div class="header">
+            <h1>🌙 Sleepover Cards Editor</h1>
+            <p>Создавайте и редактируйте карточки для незабываемых вечеринок</p>
+        </div>
+
+        <div class="main-layout">
+            <!-- Левая панель - список карточек -->
+            <div class="cards-sidebar">
+                <div class="sidebar-header">
+                    <h3 class="sidebar-title">Карточки</h3>
+                    <button class="add-card-btn" id="addCardBtn" title="Добавить карточку">+</button>
+                </div>
+
+                <div class="stats">
+                    <div class="stats-item">Всего: <span class="stats-number" id="totalCards">0</span></div>
+                    <div class="stats-item">Валидных: <span class="stats-number" id="validCards">0</span></div>
+                    <div class="stats-item">С ошибками: <span class="stats-number" id="invalidCards">0</span></div>
+                </div>
+
+                <div class="file-input">
+                    <label for="jsonFile">📁 Загрузить JSON</label>
+                    <input type="file" id="jsonFile" accept=".json">
+                </div>
+
+                <div class="cards-list" id="cardsList">
+                    <!-- Карточки будут добавляться динамически -->
+                </div>
+            </div>
+
+            <!-- Центральная панель - редактор -->
+            <div class="editor-section">
+                <div id="noCardSelected" class="no-card-selected">
+                    <h3>🎭 Выберите карточку для редактирования</h3>
+                    <p>Выберите карточку из списка слева или создайте новую</p>
+                </div>
+
+                <div id="cardEditor" style="display: none;">
+                    <h2 class="section-title">Редактор карточки</h2>
+                    
+                    <div id="validationSummary" class="validation-summary" style="display: none;">
+                        <h4>⚠️ Найдены ошибки:</h4>
+                        <ul id="validationList"></ul>
+                    </div>
+
+                    <form id="cardForm">
+                        <!-- Основные поля -->
+                        <div class="subsection">
+                            <h3>🎯 Основная информация</h3>
+                            
+                            <div class="form-group">
+                                <label for="id">ID (UUID - генерируется автоматически)</label>
+                                <input type="text" id="id" readonly style="background: #f8f9fa;">
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="catalog_id">Catalog ID</label>
+                                <input type="text" id="catalog_id">
+                                <div class="error-message">Обязательное поле</div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="set_id">Set ID</label>
+                                <select id="set_id">
+                                    <option value="">-- Выберите набор --</option>
+                                    <option value="4-iyulya">4-iyulya</option>
+                                    <option value="first-vibes">first-vibes</option>
+                                    <option value="crush-chronicles">crush-chronicles</option>
+                                    <option value="digital-drama">digital-drama</option>
+                                    <option value="spill-everything">spill-everything</option>
+                                </select>
+                                <div class="error-message">Выберите набор</div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="category">Category</label>
+                                <select id="category">
+                                    <option value="">-- Выберите категорию --</option>
+                                    <option value="experience">Experience (Было/Не было)</option>
+                                    <option value="vote">Vote (Это я/Не я)</option>
+                                    <option value="challenge">Challenge (Сделала/Пас)</option>
+                                    <option value="story">Story (Рассказала/Молчу)</option>
+                                    <option value="match">Match (Совпало/Не совпало)</option>
+                                    <option value="duel">Duel (Победила/Проиграла)</option>
+                                    <option value="choice">Choice (Выбрала/Сложно)</option>
+                                </select>
+                                <div class="error-message">Выберите категорию</div>
+                            </div>
+                        </div>
+
+                        <!-- Call to Action -->
+                        <div class="subsection">
+                            <h3>🔥 Действия</h3>
+                            
+                            <div class="form-group required">
+                                <label for="primary">Primary Action</label>
+                                <select id="primary">
+                                    <option value="">-- Выберите действие --</option>
+                                    <option value="Было">Было</option>
+                                    <option value="Это я">Это я</option>
+                                    <option value="Сделала">Сделала</option>
+                                    <option value="Рассказала">Рассказала</option>
+                                    <option value="Совпало">Совпало</option>
+                                    <option value="Победила">Победила</option>
+                                    <option value="Выбрала">Выбрала</option>
+                                </select>
+                                <div class="error-message">Выберите основное действие</div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="secondary">Secondary Action</label>
+                                <select id="secondary">
+                                    <option value="">-- Выберите действие --</option>
+                                    <option value="Не было">Не было</option>
+                                    <option value="Не я">Не я</option>
+                                    <option value="Пас">Пас</option>
+                                    <option value="Молчу">Молчу</option>
+                                    <option value="Не совпало">Не совпало</option>
+                                    <option value="Проиграла">Проиграла</option>
+                                    <option value="Сложно">Сложно</option>
+                                </select>
+                                <div class="error-message">Выберите альтернативное действие</div>
+                            </div>
+                        </div>
+
+                        <!-- Параметры -->
+                        <div class="subsection">
+                            <h3>⚙️ Параметры</h3>
+                            
+                            <div class="form-group required">
+                                <label for="depth">Depth (1-5)</label>
+                                <input type="number" id="depth" min="1" max="5">
+                                <div class="error-message">Введите значение от 1 до 5</div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="spice">Spice (0-3)</label>
+                                <input type="number" id="spice" min="0" max="3">
+                                <div class="error-message">Введите значение от 0 до 3</div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="weight">Weight</label>
+                                <input type="number" id="weight" min="0" step="0.1">
+                                <div class="error-message">Введите положительное число</div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="target_player">Target Player</label>
+                                <select id="target_player">
+                                    <option value="">-- Выберите цель --</option>
+                                    <option value="left">Left</option>
+                                    <option value="right">Right</option>
+                                    <option value="random">Random</option>
+                                    <option value="self">Self</option>
+                                </select>
+                                <div class="error-message">Выберите целевого игрока</div>
+                            </div>
+                        </div>
+
+                        <!-- Тексты -->
+                        <div class="subsection">
+                            <h3>📝 Тексты</h3>
+                            
+                            <div class="form-group required">
+                                <label for="text_ru">Текст (RU)</label>
+                                <textarea id="text_ru" rows="3"></textarea>
+                                <div class="error-message">Обязательное поле</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="text_en">Text (EN)</label>
+                                <textarea id="text_en" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="placeholders">Placeholders</label>
+                                <input type="text" id="placeholders" placeholder="player, name, etc. (через запятую)">
+                            </div>
+                        </div>
+
+                        <!-- Теги -->
+                        <div class="subsection">
+                            <h3>🏷️ Теги</h3>
+                            
+                            <div class="form-group">
+                                <label>Tone</label>
+                                <div class="multi-select" data-field="tone">
+                                    <div class="multi-select-container">
+                                        <div class="selected-items"></div>
+                                    </div>
+                                    <div class="dropdown-options">
+                                        <div class="dropdown-option" data-value="light">Light</div>
+                                        <div class="dropdown-option" data-value="deep">Deep</div>
+                                        <div class="dropdown-option" data-value="flirt_light">Flirt Light</div>
+                                        <div class="dropdown-option" data-value="nsfw_18">NSFW 18+</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Occasion</label>
+                                <div class="multi-select" data-field="occasion">
+                                    <div class="multi-select-container">
+                                        <div class="selected-items"></div>
+                                    </div>
+                                    <div class="dropdown-options">
+                                        <div class="dropdown-option" data-value="пикник">Пикник</div>
+                                        <div class="dropdown-option" data-value="в дороге">В дороге</div>
+                                        <div class="dropdown-option" data-value="свидание">Свидание</div>
+                                        <div class="dropdown-option" data-value="вечеринка">Вечеринка</div>
+                                        <div class="dropdown-option" data-value="дома">Дома</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Season</label>
+                                <div class="multi-select" data-field="season">
+                                    <div class="multi-select-container">
+                                        <div class="selected-items"></div>
+                                    </div>
+                                    <div class="dropdown-options">
+                                        <div class="dropdown-option" data-value="4 июля">4 июля</div>
+                                        <div class="dropdown-option" data-value="новый год">Новый год</div>
+                                        <div class="dropdown-option" data-value="лето">Лето</div>
+                                        <div class="dropdown-option" data-value="зима">Зима</div>
+                                        <div class="dropdown-option" data-value="весна">Весна</div>
+                                        <div class="dropdown-option" data-value="осень">Осень</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="segment">Segment</label>
+                                <select id="segment">
+                                    <option value="">-- Выберите сегмент --</option>
+                                    <option value="универсально">Универсально</option>
+                                    <option value="подростки">Подростки</option>
+                                    <option value="студенты">Студенты</option>
+                                    <option value="взрослые">Взрослые</option>
+                                </select>
+                                <div class="error-message">Выберите сегмент</div>
+                            </div>
+                        </div>
+
+                        <!-- Дополнительно -->
+                        <div class="subsection">
+                            <h3>🌍 Дополнительно</h3>
+                            
+                            <div class="form-group">
+                                <label>Countries Allow</label>
+                                <div class="multi-select" data-field="countries_allow">
+                                    <div class="multi-select-container">
+                                        <div class="selected-items"></div>
+                                    </div>
+                                    <div class="dropdown-options">
+                                        <div class="dropdown-option" data-value="US">US</div>
+                                        <div class="dropdown-option" data-value="RU">RU</div>
+                                        <div class="dropdown-option" data-value="UK">UK</div>
+                                        <div class="dropdown-option" data-value="CA">CA</div>
+                                        <div class="dropdown-option" data-value="DE">DE</div>
+                                        <div class="dropdown-option" data-value="FR">FR</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Languages</label>
+                                <div class="multi-select" data-field="languages">
+                                    <div class="multi-select-container">
+                                        <div class="selected-items"></div>
+                                    </div>
+                                    <div class="dropdown-options">
+                                        <div class="dropdown-option" data-value="ru">Russian</div>
+                                        <div class="dropdown-option" data-value="en">English</div>
+                                        <div class="dropdown-option" data-value="es">Spanish</div>
+                                        <div class="dropdown-option" data-value="fr">French</div>
+                                        <div class="dropdown-option" data-value="de">German</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group required">
+                                <label for="min_age">Min Age</label>
+                                <input type="number" id="min_age" min="7" max="25">
+                                <div class="error-message">Введите возраст от 7 до 25</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="notes">Notes</label>
+                                <textarea id="notes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Правая панель - JSON -->
+            <div class="json-section">
+                <h2 class="section-title">JSON Output</h2>
+                <textarea id="jsonOutput" class="json-output" readonly></textarea>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <button type="button" class="btn btn-success" id="downloadBtn">💾 Скачать JSON</button>
+            <button type="button" class="btn btn-secondary" id="copyBtn">📋 Копировать JSON</button>
+            <button type="button" class="btn btn-info" id="downloadSingleBtn" disabled>📄 Скачать текущую карточку</button>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let cardsData = [];
+        let currentCardIndex = -1;
+
+        // Шаблон новой карточки
+        function createNewCard() {
+            return {
+                id: generateUUID(),
+                catalog_id: '',
+                set_id: '',
+                category: '',
+                call_to_action: {
+                    primary: '',
+                    secondary: ''
+                },
+                depth: 2,
+                spice: 0,
+                consent_required_level: 0,
+                weight: 1,
+                target_player: '',
+                locale_text: {
+                    ru: '',
+                    en: ''
+                },
+                ab_variants_by_locale: {
+                    ru: [],
+                    en: []
+                },
+                tags: {
+                    tone: ['light'],
+                    occasion: [],
+                    season: [],
+                    segment: ['универсально']
+                },
+                eligibility: {
+                    countries_allow: ['US'],
+                    languages: ['ru', 'en'],
+                    min_age: 7
+                },
+                seasonality: {
+                    start_utc: '2025-06-25T00:00:00Z',
+                    end_utc: '2025-07-10T23:59:59Z',
+                    boost_weight: 2
+                },
+                nsfw_light: false,
+                nsfw_18_plus: false,
+                content_warnings: [],
+                paywall: {
+                    gated: true,
+                    tier: null
+                },
+                status: 'approved',
+                version: 2,
+                author: 'content_team',
+                reviewer: 'content_lead',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                placeholders: [],
+                notes: ''
+            };
+        }
+
+        // Утилиты
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('sleepover_cards_data', JSON.stringify(cardsData));
+                console.log('💾 LocalStorage Save:', `Сохранено ${cardsData.length} карточек`);
+            } catch (error) {
+                console.error('💥 LocalStorage Save Error:', error);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('sleepover_cards_data');
+            if (saved) {
+                try {
+                    cardsData = JSON.parse(saved);
+                    console.log('📂 LocalStorage Load:', `Загружено ${cardsData.length} карточек из localStorage`);
+                    
+                    // Валидируем все загруженные карточки
+                    cardsData.forEach((card, index) => {
+                        const errors = validateCard(card, index);
+                        if (errors.length > 0) {
+                            console.warn(`⚠️ Loaded Card Invalid:`, errors);
+                        }
+                    });
+                    
+                    renderCardsList();
+                    updateStats();
+                } catch (e) {
+                    console.error('💥 LocalStorage Parse Error:', e);
+                    console.warn('🔄 Resetting to empty array due to parse error');
+                    cardsData = [];
+                }
+            } else {
+                console.log('📂 LocalStorage Load: Нет сохраненных данных');
+            }
+        }
+
+        // Валидация
+        function validateCard(card, index = null) {
+            const errors = [];
+            const cardPrefix = index !== null ? `Карточка ${index + 1}` : 'Карточка';
+
+            try {
+                if (!card.catalog_id?.trim()) {
+                    const error = `${cardPrefix}: Catalog ID обязателен`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.set_id) {
+                    const error = `${cardPrefix}: Set ID обязателен`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.category) {
+                    const error = `${cardPrefix}: Category обязательна`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.call_to_action?.primary) {
+                    const error = `${cardPrefix}: Primary Action обязательно`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.call_to_action?.secondary) {
+                    const error = `${cardPrefix}: Secondary Action обязательно`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.locale_text?.ru?.trim()) {
+                    const error = `${cardPrefix}: Текст на русском обязателен`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.target_player) {
+                    const error = `${cardPrefix}: Target Player обязателен`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (!card.tags?.segment?.[0]) {
+                    const error = `${cardPrefix}: Segment обязателен`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (card.depth < 1 || card.depth > 5) {
+                    const error = `${cardPrefix}: Depth должен быть от 1 до 5 (текущий: ${card.depth})`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (card.spice < 0 || card.spice > 3) {
+                    const error = `${cardPrefix}: Spice должен быть от 0 до 3 (текущий: ${card.spice})`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (card.weight <= 0) {
+                    const error = `${cardPrefix}: Weight должен быть больше 0 (текущий: ${card.weight})`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+                
+                if (card.eligibility?.min_age < 7 || card.eligibility?.min_age > 25) {
+                    const error = `${cardPrefix}: Min Age должен быть от 7 до 25 (текущий: ${card.eligibility?.min_age})`;
+                    errors.push(error);
+                    console.warn('🔍 Validation Error:', error, card);
+                }
+
+                // Логируем успешную валидацию только если нет ошибок
+                if (errors.length === 0) {
+                    console.log('✅ Validation Success:', `${cardPrefix} прошла валидацию`);
+                }
+
+            } catch (error) {
+                console.error('💥 Critical Validation Error:', error, card);
+                errors.push(`${cardPrefix}: Критическая ошибка валидации`);
+            }
+
+            return errors;
+        }
+
+        function showValidationErrors(errors) {
+            const summary = document.getElementById('validationSummary');
+            const list = document.getElementById('validationList');
+            
+            if (errors.length > 0) {
+                list.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+                summary.style.display = 'block';
+            } else {
+                summary.style.display = 'none';
+            }
+        }
+
+        function validateFormField(fieldName, value) {
+            const formGroup = document.querySelector(`#${fieldName}`).closest('.form-group');
+            let isValid = true;
+
+            switch (fieldName) {
+                case 'catalog_id':
+                case 'text_ru':
+                    isValid = value?.trim().length > 0;
+                    break;
+                case 'set_id':
+                case 'category':
+                case 'primary':
+                case 'secondary':
+                case 'target_player':
+                case 'segment':
+                    isValid = value !== '';
+                    break;
+                case 'depth':
+                    isValid = value >= 1 && value <= 5;
+                    break;
+                case 'spice':
+                    isValid = value >= 0 && value <= 3;
+                    break;
+                case 'weight':
+                    isValid = value > 0;
+                    break;
+                case 'min_age':
+                    isValid = value >= 7 && value <= 25;
+                    break;
+                default:
+                    isValid = true;
+            }
+
+            if (formGroup) {
+                formGroup.classList.toggle('error', !isValid);
+            }
+
+            return isValid;
+        }
+
+        // Рендеринг списка карточек
+        function renderCardsList() {
+            const list = document.getElementById('cardsList');
+            list.innerHTML = '';
+
+            console.log('🎨 Rendering Cards List:', `Отображаем ${cardsData.length} карточек`);
+
+            cardsData.forEach((card, index) => {
+                try {
+                    const errors = validateCard(card, index);
+                    const isValid = errors.length === 0;
+
+                    const cardElement = document.createElement('div');
+                    cardElement.className = `card-item ${index === currentCardIndex ? 'active' : ''} ${!isValid ? 'invalid' : ''}`;
+                    cardElement.onclick = () => selectCard(index);
+
+                    const preview = card.locale_text?.ru || 'Новая карточка';
+                    const category = card.category || 'Без категории';
+                    const setId = card.set_id || 'Без набора';
+
+                    cardElement.innerHTML = `
+                        <div class="card-preview">
+                            <div class="card-meta">
+                                <span>${category}</span>
+                                <span>${setId}</span>
+                            </div>
+                            <div class="card-text">${preview}</div>
+                            <div class="card-tags">
+                                ${card.target_player || 'No target'} • 
+                                depth:${card.depth} • 
+                                spice:${card.spice}
+                                ${!isValid ? ' • ⚠️ Ошибки' : ''}
+                            </div>
+                        </div>
+                        <button class="delete-card" onclick="deleteCard(${index}); event.stopPropagation();">×</button>
+                    `;
+
+                    list.appendChild(cardElement);
+
+                    if (!isValid) {
+                        console.warn(`⚠️ Card ${index + 1} Invalid:`, errors);
+                    }
+                } catch (error) {
+                    console.error(`💥 Render Error for card ${index + 1}:`, error, card);
+                }
+            });
+        }
+
+        function updateStats() {
+            try {
+                const total = cardsData.length;
+                const valid = cardsData.filter(card => validateCard(card).length === 0).length;
+                const invalid = total - valid;
+
+                document.getElementById('totalCards').textContent = total;
+                document.getElementById('validCards').textContent = valid;
+                document.getElementById('invalidCards').textContent = invalid;
+
+                console.log('📊 Stats Updated:', {
+                    total: total,
+                    valid: valid,
+                    invalid: invalid
+                });
+            } catch (error) {
+                console.error('💥 Stats Update Error:', error);
+            }
+        }
+
+        // Выбор карточки
+        function selectCard(index) {
+            try {
+                console.log(`🎯 Selecting Card:`, index + 1, cardsData[index]);
+                
+                currentCardIndex = index;
+                renderCardsList();
+                populateForm();
+                updateJSON();
+
+                document.getElementById('noCardSelected').style.display = 'none';
+                document.getElementById('cardEditor').style.display = 'block';
+                document.getElementById('downloadSingleBtn').disabled = false;
+
+                console.log(`✅ Card Selected:`, `Карточка ${index + 1} активна`);
+            } catch (error) {
+                console.error('💥 Card Selection Error:', error, index);
+            }
+        }
+
+        // Добавление новой карточки
+        function addNewCard() {
+            try {
+                const newCard = createNewCard();
+                cardsData.push(newCard);
+                console.log('➕ New Card Added:', newCard.id, newCard);
+                
+                selectCard(cardsData.length - 1);
+                saveToLocalStorage();
+                updateStats();
+            } catch (error) {
+                console.error('💥 Add Card Error:', error);
+            }
+        }
+
+        // Удаление карточки
+        function deleteCard(index) {
+            try {
+                if (confirm('Вы уверены, что хотите удалить эту карточку?')) {
+                    const deletedCard = cardsData[index];
+                    console.log('🗑️ Deleting Card:', index + 1, deletedCard);
+                    
+                    cardsData.splice(index, 1);
+                    
+                    if (currentCardIndex === index) {
+                        currentCardIndex = -1;
+                        document.getElementById('noCardSelected').style.display = 'flex';
+                        document.getElementById('cardEditor').style.display = 'none';
+                        document.getElementById('downloadSingleBtn').disabled = true;
+                    } else if (currentCardIndex > index) {
+                        currentCardIndex--;
+                    }
+                    
+                    renderCardsList();
+                    updateStats();
+                    saveToLocalStorage();
+                    updateJSON();
+
+                    console.log('✅ Card Deleted:', `Удалена карточка ${index + 1}`);
+                }
+            } catch (error) {
+                console.error('💥 Delete Card Error:', error, index);
+            }
+        }
+
+        // Multi-select функциональность
+        function initMultiSelect() {
+            document.querySelectorAll('.multi-select').forEach(container => {
+                const field = container.dataset.field;
+                const selectContainer = container.querySelector('.multi-select-container');
+                const selectedItems = container.querySelector('.selected-items');
+                const dropdown = container.querySelector('.dropdown-options');
+
+                selectContainer.addEventListener('click', () => {
+                    dropdown.classList.toggle('active');
+                });
+
+                dropdown.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('dropdown-option')) {
+                        const value = e.target.dataset.value;
+                        toggleSelection(field, value, container);
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!container.contains(e.target)) {
+                        dropdown.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        function toggleSelection(field, value, container) {
+            if (currentCardIndex === -1) return;
+
+            const selectedItems = container.querySelector('.selected-items');
+            let currentValues = [];
+
+            // Получаем текущие значения
+            if (field === 'tone' || field === 'occasion' || field === 'season') {
+                currentValues = cardsData[currentCardIndex].tags[field] || [];
+            } else if (field === 'countries_allow' || field === 'languages') {
+                currentValues = cardsData[currentCardIndex].eligibility[field] || [];
+            }
+
+            // Переключаем значение
+            const index = currentValues.indexOf(value);
+            if (index > -1) {
+                currentValues.splice(index, 1);
+            } else {
+                currentValues.push(value);
+            }
+
+            // Обновляем данные
+            if (field === 'tone' || field === 'occasion' || field === 'season') {
+                cardsData[currentCardIndex].tags[field] = currentValues;
+            } else if (field === 'countries_allow' || field === 'languages') {
+                cardsData[currentCardIndex].eligibility[field] = currentValues;
+            }
+
+            updateSelectedItems(field, container);
+            renderCardsList();
+            updateJSON();
+            saveToLocalStorage();
+        }
+
+        function updateSelectedItems(field, container) {
+            if (currentCardIndex === -1) return;
+
+            const selectedItems = container.querySelector('.selected-items');
+            let currentValues = [];
+
+            if (field === 'tone' || field === 'occasion' || field === 'season') {
+                currentValues = cardsData[currentCardIndex].tags[field] || [];
+            } else if (field === 'countries_allow' || field === 'languages') {
+                currentValues = cardsData[currentCardIndex].eligibility[field] || [];
+            }
+
+            selectedItems.innerHTML = currentValues.map(value => `
+                <div class="selected-item">
+                    ${value}
+                    <span class="remove" onclick="removeSelection('${field}', '${value}')">×</span>
+                </div>
+            `).join('');
+
+            // Обновляем состояние опций
+            container.querySelectorAll('.dropdown-option').forEach(option => {
+                option.classList.toggle('selected', currentValues.includes(option.dataset.value));
+            });
+        }
+
+        function removeSelection(field, value) {
+            if (currentCardIndex === -1) return;
+
+            let currentValues = [];
+
+            if (field === 'tone' || field === 'occasion' || field === 'season') {
+                currentValues = cardsData[currentCardIndex].tags[field] || [];
+            } else if (field === 'countries_allow' || field === 'languages') {
+                currentValues = cardsData[currentCardIndex].eligibility[field] || [];
+            }
+
+            const index = currentValues.indexOf(value);
+            if (index > -1) {
+                currentValues.splice(index, 1);
+            }
+
+            if (field === 'tone' || field === 'occasion' || field === 'season') {
+                cardsData[currentCardIndex].tags[field] = currentValues;
+            } else if (field === 'countries_allow' || field === 'languages') {
+                cardsData[currentCardIndex].eligibility[field] = currentValues;
+            }
+
+            const container = document.querySelector(`[data-field="${field}"]`);
+            updateSelectedItems(field, container);
+            renderCardsList();
+            updateJSON();
+            saveToLocalStorage();
+        }
+
+        // Обновление JSON
+        function updateJSON() {
+            if (currentCardIndex === -1) {
+                document.getElementById('jsonOutput').value = JSON.stringify(cardsData, null, 2);
+            } else {
+                cardsData[currentCardIndex].updated_at = new Date().toISOString();
+                const card = cardsData[currentCardIndex];
+                const errors = validateCard(card);
+                showValidationErrors(errors);
+                document.getElementById('jsonOutput').value = JSON.stringify(card, null, 2);
+            }
+        }
+
+        // Заполнение формы
+        function populateForm() {
+            if (currentCardIndex === -1) return;
+
+            const card = cardsData[currentCardIndex];
+            
+            document.getElementById('id').value = card.id || '';
+            document.getElementById('catalog_id').value = card.catalog_id || '';
+            document.getElementById('set_id').value = card.set_id || '';
+            document.getElementById('category').value = card.category || '';
+            document.getElementById('primary').value = card.call_to_action?.primary || '';
+            document.getElementById('secondary').value = card.call_to_action?.secondary || '';
+            document.getElementById('depth').value = card.depth || '';
+            document.getElementById('spice').value = card.spice || '';
+            document.getElementById('weight').value = card.weight || '';
+            document.getElementById('target_player').value = card.target_player || '';
+            document.getElementById('text_ru').value = card.locale_text?.ru || '';
+            document.getElementById('text_en').value = card.locale_text?.en || '';
+            document.getElementById('placeholders').value = (card.placeholders || []).join(', ');
+            document.getElementById('segment').value = card.tags?.segment?.[0] || '';
+            document.getElementById('min_age').value = card.eligibility?.min_age || '';
+            document.getElementById('notes').value = card.notes || '';
+
+            // Обновляем multi-select поля
+            document.querySelectorAll('.multi-select').forEach(container => {
+                const field = container.dataset.field;
+                updateSelectedItems(field, container);
+            });
+
+            // Валидация всех полей
+            const errors = validateCard(card);
+            showValidationErrors(errors);
+            
+            updateJSON();
+        }
+
+        // Обработчики событий для простых полей
+        function attachEventListeners() {
+            const fields = [
+                'catalog_id', 'set_id', 'category', 'primary', 'secondary',
+                'depth', 'spice', 'weight', 'target_player', 'text_ru', 'text_en',
+                'segment', 'min_age', 'notes'
+            ];
+
+            fields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    element.addEventListener('input', (e) => {
+                        validateFormField(field, e.target.value);
+                        updateField(field, e.target.value);
+                    });
+                }
+            });
+
+            // Плейсхолдеры
+            document.getElementById('placeholders').addEventListener('input', (e) => {
+                if (currentCardIndex === -1) return;
+                const placeholders = e.target.value.split(',').map(p => p.trim()).filter(p => p);
+                cardsData[currentCardIndex].placeholders = placeholders;
+                renderCardsList();
+                updateJSON();
+                saveToLocalStorage();
+            });
+        }
+
+        function updateField(field, value) {
+            if (currentCardIndex === -1) return;
+
+            const card = cardsData[currentCardIndex];
+
+            if (field === 'primary' || field === 'secondary') {
+                card.call_to_action[field] = value;
+            } else if (field === 'text_ru') {
+                card.locale_text.ru = value;
+            } else if (field === 'text_en') {
+                card.locale_text.en = value;
+            } else if (field === 'segment') {
+                card.tags.segment = [value];
+            } else if (field === 'min_age') {
+                card.eligibility.min_age = parseInt(value) || 7;
+            } else if (field === 'depth' || field === 'spice' || field === 'weight') {
+                card[field] = parseFloat(value) || 0;
+            } else {
+                card[field] = value;
+            }
+
+            renderCardsList();
+            updateJSON();
+            saveToLocalStorage();
+            updateStats();
+        }
+
+        // Обработчики кнопок
+        document.getElementById('addCardBtn').addEventListener('click', addNewCard);
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            try {
+                console.log('💾 Downloading All Cards:', `Скачиваем ${cardsData.length} карточек`);
+                
+                // Выгружаем как массив карточек
+                const jsonString = JSON.stringify(cardsData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `sleepover-cards-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                console.log('✅ Download Success:', 'Все карточки скачаны');
+            } catch (error) {
+                console.error('💥 Download All Error:', error);
+                alert('Ошибка при скачивании файла: ' + error.message);
+            }
+        });
+
+        document.getElementById('downloadSingleBtn').addEventListener('click', () => {
+            try {
+                if (currentCardIndex === -1) return;
+                const card = cardsData[currentCardIndex];
+                
+                console.log('💾 Downloading Single Card:', card.id, card);
+                
+                const jsonString = JSON.stringify(card, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `sleepover-card-${card.id}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                console.log('✅ Single Download Success:', `Карточка ${card.id} скачана`);
+            } catch (error) {
+                console.error('💥 Download Single Error:', error);
+                alert('Ошибка при скачивании карточки: ' + error.message);
+            }
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            try {
+                // Копируем массив карточек, а не одну карточку
+                const jsonString = JSON.stringify(cardsData, null, 2);
+                
+                console.log('📋 Copying to Clipboard:', `Копируем ${cardsData.length} карточек`);
+                
+                navigator.clipboard.writeText(jsonString).then(() => {
+                    const btn = document.getElementById('copyBtn');
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ Скопировано!';
+                    btn.style.background = '#28a745';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = '#6c757d';
+                    }, 2000);
+
+                    console.log('✅ Copy Success:', 'Карточки скопированы в буфер');
+                }).catch(error => {
+                    console.error('💥 Copy Error:', error);
+                    alert('Ошибка копирования: ' + error.message);
+                });
+            } catch (error) {
+                console.error('💥 Copy Preparation Error:', error);
+            }
+        });
+
+        // Загрузка JSON файла
+        document.getElementById('jsonFile').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                console.log('📂 Loading File:', file.name, `${file.size} bytes`);
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        console.log('📄 File Parsed:', jsonData);
+                        
+                        // Всегда ожидаем массив карточек
+                        if (Array.isArray(jsonData)) {
+                            console.log('📋 Loading Array:', `${jsonData.length} карточек`);
+                            cardsData = jsonData.map((card, index) => {
+                                // Генерируем UUID если его нет
+                                if (!card.id) {
+                                    card.id = generateUUID();
+                                    console.log(`🔧 Generated UUID for card ${index + 1}:`, card.id);
+                                }
+                                return card;
+                            });
+                        } else {
+                            console.log('📄 Loading Single Card, converting to array');
+                            // Если это одна карточка, делаем массив из неё
+                            if (!jsonData.id) {
+                                jsonData.id = generateUUID();
+                                console.log('🔧 Generated UUID for single card:', jsonData.id);
+                            }
+                            cardsData = [jsonData];
+                        }
+                        
+                        // Валидируем все загруженные карточки
+                        let totalErrors = 0;
+                        cardsData.forEach((card, index) => {
+                            const errors = validateCard(card, index);
+                            totalErrors += errors.length;
+                        });
+
+                        console.log('🔍 Validation Complete:', {
+                            totalCards: cardsData.length,
+                            totalErrors: totalErrors,
+                            validCards: cardsData.filter(card => validateCard(card).length === 0).length
+                        });
+                        
+                        currentCardIndex = -1;
+                        renderCardsList();
+                        updateStats();
+                        saveToLocalStorage();
+                        
+                        document.getElementById('noCardSelected').style.display = 'flex';
+                        document.getElementById('cardEditor').style.display = 'none';
+                        document.getElementById('downloadSingleBtn').disabled = true;
+                        
+                        // Показываем уведомление
+                        const header = document.querySelector('.header p');
+                        const originalText = header.textContent;
+                        const message = totalErrors > 0 
+                            ? `✅ Загружено ${cardsData.length} карточек (${totalErrors} ошибок)`
+                            : `✅ Загружено ${cardsData.length} карточек!`;
+                        header.textContent = message;
+                        header.style.color = totalErrors > 0 ? '#ffc107' : '#28a745';
+                        
+                        setTimeout(() => {
+                            header.textContent = originalText;
+                            header.style.color = 'rgba(255, 255, 255, 0.9)';
+                        }, 5000);
+
+                        console.log('✅ File Load Success:', `Файл ${file.name} успешно загружен`);
+                        
+                    } catch (error) {
+                        console.error('💥 JSON Parse Error:', error, e.target.result);
+                        alert('Ошибка при загрузке JSON файла: ' + error.message);
+                    }
+                };
+
+                reader.onerror = (error) => {
+                    console.error('💥 File Read Error:', error);
+                    alert('Ошибка при чтении файла');
+                };
+
+                reader.readAsText(file);
+            }
+        });
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            // Загружаем данные из localStorage
+            loadFromLocalStorage();
+            
+            // Инициализируем компоненты
+            initMultiSelect();
+            attachEventListeners();
+            updateStats();
+            
+            // Если карточек нет, создаем первую
+            if (cardsData.length === 0) {
+                addNewCard();
+            }
+            
+            console.log('🌙 Sleepover Cards Editor загружен!');
+        });
+
+        // Экспорт функций в глобальную область для onclick обработчиков
+        window.removeSelection = removeSelection;
+        window.deleteCard = deleteCard;
