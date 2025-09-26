@@ -1,4 +1,4 @@
-        // Инициализация
+// Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 console.log('🚀 Initializing Sleepover Cards Editor...');
@@ -31,7 +31,53 @@
                 
             } catch (error) {
                 console.error('💥 Initialization Error:', error);
-                alert('Ошибка<!DOCTYPE html>
+                alert('Ошибка инициализации редактора: ' + error.message);
+            }
+        });
+
+        // Экспорт функций в глобальную область для onclick обработчиков
+        window.removeSelection = removeSelection;
+        window.deleteCard = deleteCard;
+        
+        // Дополнительные функции для отладки
+        window.debugEditor = {
+            cardsData: () => cardsData,
+            currentCardIndex: () => currentCardIndex,
+            validateAll: () => {
+                console.log('🔍 Validating All Cards:');
+                cardsData.forEach((card, index) => {
+                    const errors = validateCard(card, index);
+                    console.log(`Card ${index + 1}:`, errors.length === 0 ? '✅ Valid' : `❌ ${errors.length} errors`, errors);
+                });
+            },
+            exportToConsole: () => {
+                console.log('📤 Current Cards Data:');
+                console.log(JSON.stringify(cardsData, null, 2));
+            },
+            clearAll: () => {
+                if (confirm('Удалить ВСЕ карточки? Это действие необратимо!')) {
+                    cardsData = [];
+                    currentCardIndex = -1;
+                    renderCardsList();
+                    updateStats();
+                    saveToLocalStorage();
+                    document.getElementById('noCardSelected').style.display = 'flex';
+                    document.getElementById('cardEditor').style.display = 'none';
+                    console.log('🗑️ All cards cleared');
+                }
+            }
+        };
+
+        console.log('🔧 Debug functions available as window.debugEditor:', {
+            'debugEditor.cardsData()': 'Получить все карточки',
+            'debugEditor.currentCardIndex()': 'Текущий индекс',
+            'debugEditor.validateAll()': 'Валидировать все карточки',
+            'debugEditor.exportToConsole()': 'Вывести JSON в консоль',
+            'debugEditor.clearAll()': 'Очистить все карточки'
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -463,6 +509,52 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
+        .file-error {
+            margin-top: 10px;
+            padding: 12px;
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .error-icon {
+            font-size: 18px;
+            color: #e53e3e;
+            flex-shrink: 0;
+        }
+
+        .error-content {
+            flex: 1;
+        }
+
+        .error-title {
+            font-weight: 600;
+            color: #e53e3e;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .error-message {
+            color: #c53030;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
         .stats {
             padding: 15px;
             background: white;
@@ -553,6 +645,13 @@
                 <div class="file-input">
                     <label for="jsonFile">📁 Загрузить JSON</label>
                     <input type="file" id="jsonFile" accept=".json">
+                    <div id="fileError" class="file-error" style="display: none;">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-content">
+                            <div class="error-title">Ошибка загрузки файла</div>
+                            <div class="error-message"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="cards-list" id="cardsList">
@@ -912,6 +1011,50 @@
                 const v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
+        }
+
+        // Функция для показа ошибки загрузки файла
+        function showFileError(message) {
+            const errorDiv = document.getElementById('fileError');
+            const errorMessage = errorDiv.querySelector('.error-message');
+            
+            errorMessage.textContent = message;
+            errorDiv.style.display = 'flex';
+            
+            console.error('📁 File Load Error:', message);
+            
+            // Автоматически скрываем через 10 секунд
+            setTimeout(() => {
+                hideFileError();
+            }, 10000);
+        }
+
+        function hideFileError() {
+            const errorDiv = document.getElementById('fileError');
+            errorDiv.style.display = 'none';
+        }
+
+        // Функция для очистки JSON от комментариев
+        function cleanJsonString(jsonString) {
+            try {
+                // Удаляем однострочные комментарии // ...
+                let cleaned = jsonString.replace(/\/\/.*$/gm, '');
+                
+                // Удаляем многострочные комментарии /* ... */
+                cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+                
+                // Удаляем лишние запятые перед закрывающими скобками
+                cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+                
+                // Удаляем пустые строки и лишние пробелы
+                cleaned = cleaned.replace(/^\s*[\r\n]/gm, '');
+                
+                console.log('🧹 JSON Cleaned:', 'Удалены комментарии и лишние символы');
+                return cleaned;
+            } catch (error) {
+                console.error('💥 JSON Cleaning Error:', error);
+                return jsonString; // Возвращаем оригинал если что-то пошло не так
+            }
         }
 
         function saveToLocalStorage() {
@@ -1530,24 +1673,61 @@
             if (file) {
                 console.log('📂 Loading File:', file.name, `${file.size} bytes`);
                 
+                // Скрываем предыдущие ошибки
+                hideFileError();
+                
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        const jsonData = JSON.parse(e.target.result);
+                        const rawContent = e.target.result;
+                        console.log('📄 Raw File Content Length:', rawContent.length);
+                        
+                        // Проверяем, что файл не пустой
+                        if (!rawContent.trim()) {
+                            showFileError('Файл пустой или содержит только пробелы');
+                            return;
+                        }
+                        
+                        // Очищаем JSON от комментариев
+                        const cleanedContent = cleanJsonString(rawContent);
+                        console.log('🧹 Cleaned Content Length:', cleanedContent.length);
+                        
+                        const jsonData = JSON.parse(cleanedContent);
                         console.log('📄 File Parsed:', jsonData);
                         
                         // Всегда ожидаем массив карточек
                         if (Array.isArray(jsonData)) {
                             console.log('📋 Loading Array:', `${jsonData.length} карточек`);
+                            
+                            if (jsonData.length === 0) {
+                                showFileError('Массив карточек пустой');
+                                return;
+                            }
+                            
+                            // Проверяем дублирующиеся ID
+                            const ids = jsonData.map(card => card.id).filter(id => id);
+                            const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+                            if (duplicateIds.length > 0) {
+                                console.warn('⚠️ Duplicate IDs found:', duplicateIds);
+                                console.log('🔧 Generating new UUIDs for duplicates...');
+                            }
+                            
                             cardsData = jsonData.map((card, index) => {
-                                // Генерируем UUID если его нет
-                                if (!card.id) {
+                                // Базовая проверка структуры карточки
+                                if (typeof card !== 'object' || card === null) {
+                                    throw new Error(`Карточка ${index + 1} не является объектом`);
+                                }
+                                
+                                // Генерируем UUID если его нет или если ID дублируется
+                                if (!card.id || duplicateIds.includes(card.id)) {
+                                    const oldId = card.id;
                                     card.id = generateUUID();
-                                    console.log(`🔧 Generated UUID for card ${index + 1}:`, card.id);
+                                    console.log(`🔧 Generated UUID for card ${index + 1}:`, 
+                                        oldId ? `${oldId} -> ${card.id}` : card.id);
                                 }
                                 return card;
                             });
-                        } else {
+                        } else if (typeof jsonData === 'object' && jsonData !== null) {
                             console.log('📄 Loading Single Card, converting to array');
                             // Если это одна карточка, делаем массив из неё
                             if (!jsonData.id) {
@@ -1555,6 +1735,9 @@
                                 console.log('🔧 Generated UUID for single card:', jsonData.id);
                             }
                             cardsData = [jsonData];
+                        } else {
+                            showFileError('Файл должен содержать объект или массив объектов');
+                            return;
                         }
                         
                         // Валидируем все загруженные карточки
@@ -1579,7 +1762,7 @@
                         document.getElementById('cardEditor').style.display = 'none';
                         document.getElementById('downloadSingleBtn').disabled = true;
                         
-                        // Показываем уведомление
+                        // Показываем уведомление об успехе
                         const header = document.querySelector('.header p');
                         const originalText = header.textContent;
                         const message = totalErrors > 0 
@@ -1596,17 +1779,30 @@
                         console.log('✅ File Load Success:', `Файл ${file.name} успешно загружен`);
                         
                     } catch (error) {
-                        console.error('💥 JSON Parse Error:', error, e.target.result);
-                        alert('Ошибка при загрузке JSON файла: ' + error.message);
+                        console.error('💥 JSON Parse Error:', error);
+                        console.error('📄 Problematic content:', e.target.result?.substring(0, 500) + '...');
+                        
+                        // Показываем ошибку под кнопкой
+                        let errorMessage = error.message;
+                        
+                        if (error.message.includes('Unexpected token')) {
+                            errorMessage = 'Неправильный формат JSON. Возможно есть лишние запятые, незакрытые скобки или комментарии в неподдерживаемом формате.';
+                        } else if (error.message.includes('Unexpected end of JSON')) {
+                            errorMessage = 'Неожиданный конец файла. Проверьте, что все скобки закрыты.';
+                        } else if (error.message.includes('is not valid JSON')) {
+                            errorMessage = 'Файл не содержит корректный JSON.';
+                        }
+                        
+                        showFileError(errorMessage);
                     }
                 };
 
                 reader.onerror = (error) => {
                     console.error('💥 File Read Error:', error);
-                    alert('Ошибка при чтении файла');
+                    showFileError('Не удалось прочитать файл. Проверьте, что файл не поврежден.');
                 };
 
-                reader.readAsText(file);
+                reader.readAsText(file, 'utf-8');
             }
         });
 
