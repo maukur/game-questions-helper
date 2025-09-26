@@ -6,11 +6,10 @@
 <title>JSON Editor</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
 <style>
-body.section{padding-top:2rem}
-summary{cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;font-weight:600}
-summary::before{content:"\25B6";transition:transform .2s;font-size:.8rem}
-details[open]>summary::before{transform:rotate(90deg)}
 details.card{border:1px solid #dbdbdb;border-radius:6px;background:#fff;margin-bottom:1.5rem;box-shadow:0 2px 4px rgba(0,0,0,.06)}
+summary{cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;font-weight:600}
+summary::before{content:"\25B6";transition:.2s;font-size:.8rem}
+details[open]>summary::before{transform:rotate(90deg)}
 .delete-btn{background:#ff3860;border:none;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-left:auto;cursor:pointer}
 .delete-btn:hover{background:#ff1f4b}
 .has-help{cursor:help;margin-left:.25rem;color:#00d1b2;font-size:.9em}
@@ -20,129 +19,118 @@ details.card{border:1px solid #dbdbdb;border-radius:6px;background:#fff;margin-b
 <body class="section">
 <div class="container">
   <h1 class="title is-3">JSON Editor</h1>
+
   <div class="columns is-vcentered is-multiline mb-4">
     <div class="column is-narrow"><input id="fileInput" class="input" type="file" accept=".json"></div>
     <div class="column is-narrow"><button id="addBtn" class="button is-light is-info" disabled>Добавить вопрос</button></div>
     <div class="column is-narrow"><button id="downloadBtn" class="button is-info" disabled>Сохранить файл</button></div>
   </div>
+
   <div id="editor"></div>
 </div>
+
 <script>
 (function(){
-/* ------------------------------------------------------------ */
-/* Константы                                                     */
-/* ------------------------------------------------------------ */
+/* ---------- словари ---------- */
 const skipKeys=['tone','occasion','season','catalog_id'];
-const categories=[
-  'Если у тебя было…','Если все считают, что ты…','Если ты выполнил задание на карте',
-  'Если ты ответил на вопрос','Если твой ответ совпал с кем-то или большинством',
-  'Если ты выиграл дуэль','Аргументируй и выбери что лучше'];
-const sets=[
-  'Sleepover','First Vibes','Crush Chronicles','Digital Drama','Spill Everything','Family',
-  'Popular Opinions','School & Work Drama','Style & Beauty Secrets','Main Character Energy',
-  '18+ No Filter','Throwback Therapy','Content Creator','Random Universe'];
+const categories=['Если у тебя было…','Если все считают, что ты…','Если ты выполнил задание на карте','Если ты ответил на вопрос','Если твой ответ совпал с кем-то или большинством','Если ты выиграл дуэль','Аргументируй и выбери что лучше'];
+const sets=['Sleepover','First Vibes','Crush Chronicles','Digital Drama','Spill Everything','Family','Popular Opinions','School & Work Drama','Style & Beauty Secrets','Main Character Energy','18+ No Filter','Throwback Therapy','Content Creator','Random Universe'];
 const languages=['ru','en','es','pt','fr','de'];
 const targets=['игрок слева','игрок справа','игрок напротив','случайный игрок','все','я'];
-const ctaMap={
-  'Если у тебя было…':{primary:'Было',secondary:'Не было'},
-  'Если все считают, что ты…':{primary:'Это я',secondary:'Не я'},
-  'Если ты выполнил задание на карте':{primary:'Сделала',secondary:'Пас'},
-  'Если ты ответил на вопрос':{primary:'Рассказала',secondary:'Молчу'},
-  'Если твой ответ совпал с кем-то или большинством':{primary:'Совпало',secondary:'Не совпало'},
-  'Если ты выиграл дуэль':{primary:'Победила',secondary:'Проиграла'},
-  'Аргументируй и выбери что лучше':{primary:'Выбрала',secondary:'Сложно'}
-};
-/* Базовый словарь: ключ → "Метка: описание"                     */
-const baseInfo={
-  id:'ID: уникальный идентификатор карточки',
-  catalog_id:'Каталог: коллекция наборов',
-  set_id:'Набор: колода/группа вопросов',
-  category:'Категория: тип условия',
-  call_to_action:'Кнопки действия: primary / secondary',
-  depth:'Глубина: уровень откровенности (0–3)',
-  spice:'Spice: степень пикантности (0–3)',
-  consent_required_level:'Уровень согласия (0–3)',
-  weight:'Вес: частота выпадения',
-  target_player:'Целевой игрок (eng code)',
-  target:'Целевой игрок',
-  targetplayer:'Целевой игрок',
-  locale_text:'Текст вопроса по языкам',
-  ab_variants_by_locale:'A/B варианты по языкам',
-  tags:'Теги (tone, occasion, season, segment)',
-  eligibility:'Правила доступности',
-  countries_allow:'Разрешённые страны',
-  languages:'Разрешённые языки',
-  min_age:'Минимальный возраст',
-  seasonality:'Сезонность показа',
-  start_utc:'Начало сезона (UTC)',
-  end_utc:'Конец сезона (UTC)',
-  boost_weight:'Усиление веса в сезон',
-  nsfw_light:'Лёгкое NSFW',
-  nsfw_18_plus:'18+ NSFW',
-  content_warnings:'Предупреждения о контенте',
-  paywall:'Платный доступ',
-  gated:'Закрыто под paywall?',
-  tier:'Уровень paywall',
-  status:'Статус модерации',
-  version:'Версия',
-  author:'Автор',
-  reviewer:'Рецензент',
-  created_at:'Дата создания',
-  updated_at:'Дата обновления',
-  placeholders:'Плейсхолдеры для подстановки',
-  notes:'Заметки'
-};
-/* ------------------------------------------------------------ */
-/* Состояние                                                    */
-/* ------------------------------------------------------------ */
+const ctaMap={'Если у тебя было…':{primary:'Было',secondary:'Не было'},'Если все считают, что ты…':{primary:'Это я',secondary:'Не я'},'Если ты выполнил задание на карте':{primary:'Сделала',secondary:'Пас'},'Если ты ответил на вопрос':{primary:'Рассказала',secondary:'Молчу'},'Если твой ответ совпал с кем-то или большинством':{primary:'Совпало',secondary:'Не совпало'},'Если ты выиграл дуэль':{primary:'Победила',secondary:'Проиграла'},'Аргументируй и выбери что лучше':{primary:'Выбрала',secondary:'Сложно'}};
+
+const fieldInfo={id:'ID: уникальный идентификатор',category:'Категория условия',set_id:'Набор вопросов',setId:'Набор вопросов',language:'Язык',target:'Целевой игрок',target_player:'Целевой игрок',targetplayer:'Целевой игрок',tags:'Теги',question:'Текст вопроса',call_to_action:'Тексты кнопок',nsfw_18_plus:'18+ контент',placeholders:'Плейсхолдеры подстановки'};
+
+/* ---------- состояние ---------- */
 let data=[];let template=null;
+
+/* ---------- DOM ---------- */
 const $=id=>document.getElementById(id);
 const fileInput=$('fileInput'),addBtn=$('addBtn'),downloadBtn=$('downloadBtn'),editor=$('editor');
-/* ------------------------------------------------------------ */
-fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader;r.onload=o=>{try{data=JSON.parse(o.target.result);Array.isArray(data)||(data=[data]);template=structuredClone(data[0]||{});scanInfo(template);render();addBtn.disabled=false;downloadBtn.disabled=false}catch(err){alert('Bad JSON')}};r.readAsText(f,'utf-8')};
+
+/* ---------- загрузка ---------- */
+fileInput.onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=o=>{
+    try{data=JSON.parse(o.target.result);Array.isArray(data)||(data=[data]);template=structuredClone(data[0]||{});render();addBtn.disabled=false;downloadBtn.disabled=false}
+    catch{alert('Bad JSON')}
+  };r.readAsText(f,'utf-8');
+};
+
+/* ---------- добавить ---------- */
 addBtn.onclick=()=>{const obj=template?structuredClone(template):{id:''};obj.id=crypto.randomUUID();data.push(obj);render();};
-downloadBtn.onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='edited.json';a.click();URL.revokeObjectURL(url)};
-/* дополняем словарь новыми ключами */
-function scanInfo(obj,prefix=''){for(const [k,v] of Object.entries(obj)){const key=prefix?`${prefix}.${k}`:k;if(!(key in baseInfo))baseInfo[key]=prettify(k);if(v&&typeof v==='object'&&!Array.isArray(v))scanInfo(v,key)}}
-const prettify=s=>s.replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,c=>c.toUpperCase());
-function labelHtml(full){const txt=baseInfo[full]||prettify(full);const [lab,desc]=txt.split(':');return `${lab}<span class="has-help" title="${desc||lab}"> ℹ️</span>`;}
-/* ------------------------------------------------------------ */
-function render(){editor.innerHTML='';data.forEach((item,i)=>{if(!item.id||!isUUID(item.id))item.id=crypto.randomUUID();const det=el('details',{class:'card',open:true});const sum=el('summary');sum.textContent=`${i+1}. ${item.id}`;const del=el('button',{class:'delete-btn'},'×');del.onclick=e=>{e.stopPropagation();if(confirm('Удалить?')){data.splice(i,1);render();}};sum.appendChild(del);det.appendChild(sum);
- const body=el('div',{class:'columns is-multiline is-variable is-4 p-4'});buildFields(item,body,(p,v)=>update(i,p,v));det.appendChild(body);editor.appendChild(det)})}
-/* рекурсивное построение */
-function buildFields(obj,parent,onChange,prefix=''){for(const [k,v] of Object.entries(obj)){if(skipKeys.includes(k))continue;const path=prefix?`${prefix}.${k}`:k;const col=el('div',{class:'column is-half'});const lab=el('label',{class:'label'});lab.innerHTML=labelHtml(path);col.appendChild(lab);
- if(k==='tags'){
-      const init=Array.isArray(v)?v.join(', '):v||'';
-      col.appendChild(input('text',init,e=>onChange(path,e.target.value.split(',').map(t=>t.trim()).filter(Boolean))));
-    }
-    else if(k==='placeholders'){
-      const init=typeof v==='string'?v:JSON.stringify(v);
-      col.appendChild(input('text',init,e=>{
-        try{onChange(path,JSON.parse(e.target.value));e.target.classList.remove('is-danger');}
-        catch{onChange(path,e.target.value);e.target.classList.add('is-danger');}
-      }));
-    }
- else if(Array.isArray(v)&&v.every(s=>typeof s==='string')){col.appendChild(multiSelect(v,opts=>onChange(path,opts)))}
- else if(typeof v==='string'){if(k==='category')col.appendChild(select(categories,v,val=>{onChange(path,val);autoCTA(onChange,val);}));else if(k==='setId'||k==='set_id')col.appendChild(select(sets,v,val=>onChange(path,val)));else if(k==='language')col.appendChild(select(languages,v,val=>onChange(path,val)));else if(['target','targetplayer','target_player'].includes(k))col.appendChild(select(targets,v,val=>onChange(path,val)));else if(isIso(v))col.appendChild(input('datetime-local',isoToLocal(v),e=>onChange(path,localToIso(e.target.value))));else{const inp=input('text',v,e=>onChange(path,e.target.value));if(k==='id')inp.disabled=true;col.appendChild(inp)}}
- else if(typeof v==='number'){col.appendChild(input('number',v,e=>onChange(path,Number(e.target.value))))}
- else if(typeof v==='boolean'){col.appendChild(input('checkbox',v,e=>onChange(path,e.target.checked)))}
- else if(v&&typeof v==='object'){const box=el('div',{class:'box'});buildFields(v,box,onChange,path);col.appendChild(box)}
- else{const ta=input('textarea',JSON.stringify(v));ta.oninput=()=>{try{onChange(path,JSON.parse(ta.value));ta.classList.remove('is-danger')}catch{ta.classList.add('is-danger')}};col.appendChild(ta)}
- parent.appendChild(col)}}
-/* ------------------------------------------------------------ */
-function select(arr,val,cb){const wrap=el('div',{class:'select is-fullwidth'});const sel=el('select');arr.forEach(o=>sel.appendChild(el('option',{value:o,selected:o===val},o)));sel.onchange=()=>cb(sel.value);wrap.appendChild(sel);return wrap}
-function multiSelect(vals,cb){const wrap=el('div',{class:'select is-multiple is-fullwidth'});const sel=el('select',{multiple:true,size:4,class:'multiselect'});vals.forEach(o=>sel.appendChild(el('option',{value:o,selected:true},o)));sel.onchange=()=>cb([...sel.selectedOptions].map(o=>o.value));wrap.appendChild(sel);return wrap}
-function input(type,val,cb){if(type==='textarea'){const t=el('textarea',{class:'textarea'});t.value=val||'';cb&&t.addEventListener('input',cb);return t}if(type==='checkbox'){const chk=el('input',{type:'checkbox'});chk.checked=val;cb&&chk.addEventListener('input',cb);return chk}const inp=el('input',{type,class:'input'});if(val!==null)inp.value=val;cb&&inp.addEventListener('input',cb);return inp}
-/* ------------------------------------------------------------ */
-function el(t,a={},txt){const e=document.createElement(t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.appendChild(document.createTextNode(txt));return e}
-function update(idx,p,val){const keys=p.split('.');let ref=data[idx];for(let i=0;i<keys.length-1;i++)ref=ref[keys[i]];ref[keys.at(-1)]=val}
-function autoCTA(ch,cat){const c=ctaMap[cat];if(c){ch('call_to_action.primary',c.primary);ch('call_to_action.secondary',c.secondary)}}
-const iso=/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/;
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const isIso=s=>iso.test(s);
+
+/* ---------- сохранить ---------- */
+downloadBtn.onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='edited.json';a.click();URL.revokeObjectURL(u);};
+
+/* ---------- helpers ---------- */
+const el=(t,a={},txt)=>{const e=document.createElement(t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));txt!==undefined&&e.appendChild(document.createTextNode(txt));return e};
+const isIso=s=>/\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z/.test(s);
 const isoToLocal=i=>new Date(i).toISOString().slice(0,16);
 const localToIso=l=>new Date(l).toISOString();
-const isUUID=s=>uuid.test(s);
+const isUUID=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+const labelHtml=k=>{const t=fieldInfo[k]||k;const [lab,desc]=t.split(':');return `${lab}<span class='has-help' title='${desc||lab}'> ℹ️</span>`};
+
+/* ---------- рендер ---------- */
+function render(){
+  /* запоминаем открыт/закрыт */
+  const openMap={};
+  document.querySelectorAll('details.card').forEach(d=>openMap[d.dataset.id]=d.open);
+
+  editor.innerHTML='';
+  data.forEach((item,i)=>{
+    if(!item.id||!isUUID(item.id))item.id=crypto.randomUUID();
+
+    const det=el('details',{class:'card','data-id':item.id});
+    det.open=openMap[item.id]??false;         // восстанавливаем состояние
+
+    const sum=el('summary'); sum.textContent=`${i+1}. ${item.id}`;
+    const del=el('button',{class:'delete-btn'},'×');
+    del.onclick=e=>{e.stopPropagation();if(confirm('Удалить?')){data.splice(i,1);render();}};
+    sum.appendChild(del); det.appendChild(sum);
+
+    const body=el('div',{class:'columns is-multiline is-variable is-4 p-4'});
+    build(item,body,(p,v)=>update(i,p,v));
+    det.appendChild(body); editor.appendChild(det);
+  });
+}
+
+/* ---------- поля ---------- */
+function build(obj,parent,onChange,prefix=''){
+  for(const [k,v] of Object.entries(obj)){
+    if(skipKeys.includes(k))continue;
+    const path=prefix?`${prefix}.${k}`:k;
+    const col=el('div',{class:'column is-half'});
+    const lab=el('label',{class:'label'});lab.innerHTML=labelHtml(k);col.appendChild(lab);
+
+    if(k==='tags'){const init=Array.isArray(v)?v.join(', '):v||'';col.appendChild(input('text',init,e=>onChange(path,e.target.value.split(',').map(t=>t.trim()).filter(Boolean))));}
+    else if(k==='placeholders'){const init=typeof v==='string'?v:JSON.stringify(v);col.appendChild(input('text',init,e=>{try{onChange(path,JSON.parse(e.target.value));e.target.classList.remove('is-danger');}catch{onChange(path,e.target.value);e.target.classList.add('is-danger');}}));}
+    else if(Array.isArray(v)&&v.every(s=>typeof s==='string')){col.appendChild(multiSelect(v,opts=>onChange(path,opts)));}
+    else if(typeof v==='string'){
+      if(k==='category')           col.appendChild(select(categories,v,val=>{onChange(path,val);autoCTA(onChange,val);})); 
+      else if(k==='setId'||k==='set_id') col.appendChild(select(sets,v,val=>onChange(path,val)));
+      else if(k==='language')      col.appendChild(select(languages,v,val=>onChange(path,val)));
+      else if(['target','targetplayer','target_player'].includes(k)) col.appendChild(select(targets,v,val=>onChange(path,val)));
+      else if(isIso(v))            col.appendChild(input('datetime-local',isoToLocal(v),e=>onChange(path,localToIso(e.target.value))));
+      else {const inp=input('text',v,e=>onChange(path,e.target.value));if(k==='id')inp.disabled=true;col.appendChild(inp);}
+    }
+    else if(typeof v==='number'){col.appendChild(input('number',v,e=>onChange(path,Number(e.target.value))));}
+    else if(typeof v==='boolean'){col.appendChild(input('checkbox',v,e=>onChange(path,e.target.checked)));}
+    else if(v&&typeof v==='object'){const box=el('div',{class:'box'});build(v,box,onChange,path);col.appendChild(box);}
+    else {const ta=input('textarea',JSON.stringify(v));ta.oninput=()=>{try{onChange(path,JSON.parse(ta.value));ta.classList.remove('is-danger');}catch{ta.classList.add('is-danger');}};col.appendChild(ta);}
+    parent.appendChild(col);
+  }
+}
+
+/* ---------- фабрики ---------- */
+function select(arr,val,cb){const w=el('div',{class:'select is-fullwidth'});const s=el('select');arr.forEach(o=>s.appendChild(el('option',{value:o,selected:o===val},o)));s.onchange=()=>cb(s.value);w.appendChild(s);return w;}
+function multiSelect(vals,cb){const w=el('div',{class:'select is-multiple is-fullwidth'});const s=el('select',{multiple:true,size:4,class:'multiselect'});vals.forEach(o=>s.appendChild(el('option',{value:o,selected:true},o)));s.onchange=()=>cb([...s.selectedOptions].map(o=>o.value));w.appendChild(s);return w;}
+function input(type,val,cb){if(type==='textarea'){const t=el('textarea',{class:'textarea'});t.value=val||'';cb&&t.addEventListener('input',cb);return t;}if(type==='checkbox'){const c=el('input',{type:'checkbox'});c.checked=val;cb&&c.addEventListener('input',cb);return c;}const i=el('input',{type,class:'input'});if(val!==null)i.value=val;cb&&i.addEventListener('input',cb);return i;}
+
+/* ---------- utils ---------- */
+function update(idx,p,val){const ks=p.split('.');let ref=data[idx];for(let i=0;i<ks.length-1;i++)ref=ref[ks[i]];ref[ks.at(-1)]=val;}
+function autoCTA(ch,cat){const c=ctaMap[cat];if(c){ch('call_to_action.primary',c.primary);ch('call_to_action.secondary',c.secondary);}}
 })();
 </script>
 </body>
