@@ -2,24 +2,114 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JSON Editor</title>
 <style>
-body{font-family:Arial, sans-serif;margin:20px;}
-input,select,button,textarea{margin:4px 0;padding:4px;font-size:14px;}
-fieldset{border:1px solid #ccc;padding:10px;margin-bottom:10px;}
-details{border:1px solid #999;padding:6px;margin-bottom:8px;border-radius:4px;}
-summary{font-weight:bold;cursor:pointer;}
-label{display:block;margin-top:6px;}
-.multi-select{min-width:200px;min-height:80px;}
+:root{
+  --bg:#f5f7fa;
+  --card-bg:#ffffff;
+  --primary:#0066ff;
+  --primary-hover:#004cc7;
+  --border:#e0e6ef;
+  --radius:12px;
+  --shadow:0 4px 12px rgba(0,0,0,.08);
+  --font:"Segoe UI", "SF Pro", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:var(--font);
+  color:#1f2937;
+  line-height:1.4;
+  padding:24px;
+}
+h1{
+  font-size:28px;
+  margin-bottom:16px;
+}
+button,input,select,textarea{
+  font-family:inherit;
+  font-size:14px;
+}
+button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  padding:8px 18px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:background .2s;
+}
+button[disabled]{
+  opacity:.4;
+  cursor:not-allowed;
+}
+button:not([disabled]):hover{
+  background:var(--primary-hover);
+}
+#controls{
+  display:flex;
+  gap:12px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px;
+  margin-bottom:16px;
+}
+summary{
+  list-style:none;
+  position:relative;
+  padding-left:20px;
+  cursor:pointer;
+}
+summary::before{content:"▶";position:absolute;left:0;transition:transform .2s;}
+[open]>summary::before{transform:rotate(90deg);} 
+label{
+  display:block;
+  font-weight:600;
+  margin:12px 0 4px;
+}
+input[type="text"],input[type="number"],input[type="datetime-local"],select,textarea{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:#fdfdfd;
+  transition:border-color .2s;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--primary);
+  outline:none;
+}
+.multi-select{
+  min-height:120px;
+}
+fieldset{
+  border:none;
+  padding:0;
+}
+@media (min-width:600px){
+  .grid-two{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+}
 </style>
 </head>
 <body>
-
-<h2>JSON Editor</h2>
-
-<input type="file" id="fileInput" accept=".json">
-<button id="downloadBtn" disabled>Сохранить файл</button>
-<div id="editor"></div>
+  <h1>JSON Editor</h1>
+  <div id="controls">
+    <input type="file" id="fileInput" accept=".json">
+    <button id="downloadBtn" disabled>Сохранить файл</button>
+  </div>
+  <div id="editor"></div>
 
 <script>
 (function(){
@@ -38,9 +128,7 @@ label{display:block;margin-top:6px;}
     reader.onload = e=>{
       try{
         jsonData = JSON.parse(e.target.result);
-        if(!Array.isArray(jsonData)){
-          jsonData = [jsonData];
-        }
+        if(!Array.isArray(jsonData)) jsonData = [jsonData];
         renderEditor();
         downloadBtn.disabled = false;
       }catch(err){
@@ -53,139 +141,127 @@ label{display:block;margin-top:6px;}
   function renderEditor(){
     editorDiv.innerHTML = '';
     jsonData.forEach((item, idx)=>{
-      if(!item.id || !isUUID(item.id)){
-        item.id = crypto.randomUUID();
-      }
-      const container = document.createElement('details');
-      container.open = true;
+      if(!item.id || !isUUID(item.id)) item.id = crypto.randomUUID();
+      const details = document.createElement('details');
+      details.className='card';
+      details.open = true;
       const summary = document.createElement('summary');
-      summary.textContent = 'Элемент '+(idx+1)+' — '+item.id;
-      container.appendChild(summary);
-
+      summary.textContent = `Элемент ${idx+1} — ${item.id}`;
+      details.appendChild(summary);
       const form = document.createElement('div');
+      form.className = 'grid-two';
       buildForm(item, form, (path,val)=>updateJson(idx, path, val));
-      container.appendChild(form);
-      editorDiv.appendChild(container);
+      details.appendChild(form);
+      editorDiv.appendChild(details);
     });
   }
 
   function buildForm(obj, parent, onChange, prefix=''){
     Object.entries(obj).forEach(([key, value])=>{
       const path = prefix? prefix+'.'+key : key;
+      const wrapper = document.createElement('div');
       const label = document.createElement('label');
       label.textContent = key;
-      parent.appendChild(label);
+      wrapper.appendChild(label);
 
       if(Array.isArray(value) && value.every(v=>typeof v==='string')){
         const select = document.createElement('select');
         select.multiple = true;
         select.className='multi-select';
-        const options = [...new Set(value)];
-        options.forEach(opt=>{
-          const option = document.createElement('option');
-          option.value = opt;
-          option.selected = true;
-          option.textContent = opt;
-          select.appendChild(option);
+        const unique = [...new Set(value)];
+        unique.forEach(opt=>{
+          const o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt;
+          o.selected = true;
+          select.appendChild(o);
         });
         select.addEventListener('change',()=>{
           const selected = Array.from(select.selectedOptions).map(o=>o.value);
           onChange(path,selected);
         });
-        parent.appendChild(select);
+        wrapper.appendChild(select);
       }else if(typeof value==='string'){
         if(key==='category'){
           const select = document.createElement('select');
-          const categories = ['challenge','truth','dare','question'];
+          const categories=['challenge','truth','dare','question'];
           categories.forEach(cat=>{
-            const option = document.createElement('option');
-            option.value = cat;
-            option.textContent = cat;
-            if(cat===value) option.selected = true;
-            select.appendChild(option);
+            const o=document.createElement('option');
+            o.value=cat;
+            o.textContent=cat;
+            if(cat===value) o.selected=true;
+            select.appendChild(o);
           });
           select.addEventListener('change',()=>onChange(path,select.value));
-          parent.appendChild(select);
+          wrapper.appendChild(select);
         }else if(isIsoDate(value)){
-          const input = document.createElement('input');
+          const input=document.createElement('input');
           input.type='datetime-local';
-          input.value = isoToLocal(value);
+          input.value=isoToLocal(value);
           input.addEventListener('input',()=>onChange(path,localToIso(input.value)));
-          parent.appendChild(input);
+          wrapper.appendChild(input);
         }else{
-          const input = document.createElement('input');
+          const input=document.createElement('input');
           input.type='text';
           input.value=value;
           if(key==='id') input.disabled=true;
           input.addEventListener('input',()=>onChange(path,input.value));
-          parent.appendChild(input);
+          wrapper.appendChild(input);
         }
       }else if(typeof value==='number'){
-        const input = document.createElement('input');
+        const input=document.createElement('input');
         input.type='number';
         input.value=value;
         input.addEventListener('input',()=>onChange(path,Number(input.value)));
-        parent.appendChild(input);
+        wrapper.appendChild(input);
       }else if(typeof value==='boolean'){
-        const input = document.createElement('input');
-        input.type='checkbox';
-        input.checked=value;
-        input.addEventListener('change',()=>onChange(path,input.checked));
-        parent.appendChild(input);
+        const chk=document.createElement('input');
+        chk.type='checkbox';
+        chk.checked=value;
+        chk.addEventListener('change',()=>onChange(path,chk.checked));
+        wrapper.appendChild(chk);
       }else if(typeof value==='object' && value!==null){
-        const fieldset = document.createElement('fieldset');
-        buildForm(value, fieldset, onChange, path);
-        parent.appendChild(fieldset);
+        const subFieldset=document.createElement('fieldset');
+        subFieldset.style.borderLeft='2px solid var(--border)';
+        subFieldset.style.paddingLeft='12px';
+        buildForm(value, subFieldset, onChange, path);
+        wrapper.appendChild(subFieldset);
       }else{
-        const textarea = document.createElement('textarea');
-        textarea.value = JSON.stringify(value);
+        const textarea=document.createElement('textarea');
+        textarea.value=JSON.stringify(value);
         textarea.addEventListener('input',()=>{
           try{
             onChange(path,JSON.parse(textarea.value));
-            textarea.style.borderColor='';
-          }catch{
-            textarea.style.borderColor='red';
-          }
+            textarea.style.borderColor='var(--border)';
+          }catch{textarea.style.borderColor='red';}
         });
-        parent.appendChild(textarea);
+        wrapper.appendChild(textarea);
       }
+      parent.appendChild(wrapper);
     });
   }
 
-  function updateJson(idx, path, newVal){
-    const keys = path.split('.');
-    let ref = jsonData[idx];
-    for(let i=0;i<keys.length-1;i++){
-      ref = ref[keys[i]];
-    }
-    ref[keys[keys.length-1]] = newVal;
+  function updateJson(idx,path,val){
+    const keys=path.split('.');
+    let ref=jsonData[idx];
+    for(let i=0;i<keys.length-1;i++) ref=ref[keys[i]];
+    ref[keys.at(-1)]=val;
   }
 
   function downloadFile(){
-    const blob = new Blob([JSON.stringify(jsonData,null,2)],{type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const blob=new Blob([JSON.stringify(jsonData,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
     a.href=url;
     a.download='edited.json';
-    document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
-    document.body.removeChild(a);
   }
 
-  function isIsoDate(str){
-    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(str);
-  }
-  function isoToLocal(iso){
-    const d = new Date(iso);
-    return d.toISOString().slice(0,16);
-  }
-  function localToIso(local){
-    return new Date(local).toISOString();
-  }
-  function isUUID(str){
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-  }
+  function isIsoDate(str){return /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/.test(str);}  
+  function isoToLocal(iso){return new Date(iso).toISOString().slice(0,16);}  
+  function localToIso(local){return new Date(local).toISOString();}  
+  function isUUID(str){return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);}  
 })();
 </script>
 </body>
